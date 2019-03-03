@@ -11,8 +11,6 @@
 #include "Scanner.h"
 #include "Token.h"
 
-using namespace std;
-
 extern char *yytext;
 extern int yylex(void);
 
