@@ -1,8 +1,8 @@
-lex.yy.c: boris.l
-	flex boris.l
+lex.yy.c: boris_scanner.l
+	flex boris_scanner.l
 
-build: lex.yy.c
-	g++ lex.yy.c -o boris
+build: lex.yy.c Token.cpp Scanner.cpp
+	g++ Token.cpp Scanner.cpp lex.yy.c -o boris_scanner
 
 clean:
-	rm lex.yy.c boris
+	rm lex.yy.c boris_scanner
