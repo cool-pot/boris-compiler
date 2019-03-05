@@ -1,0 +1,15 @@
+[Token 266] in Line 2, [1,2].
+[Token 280] in Line 2, [3,3].
+[Token 296] in Line 2, [4,4].With value 'a'
+[Token 282] in Line 2, [6,6].
+[Token 295] in Line 2, [8,8].With value 1
+[Token 281] in Line 2, [9,9].
+[Token 296] in Line 4, [2,2].With value 'a'
+[Token 282] in Line 4, [4,4].
+[Token 296] in Line 4, [6,6].With value 'a'
+[Token 290] in Line 4, [8,8].
+[Token 295] in Line 4, [10,10].With value 1
+[Token 279] in Line 4, [11,11].
+[Token 296] in Line 6, [1,1].With value 'b'
+[Token 282] in Line 8, [2,2].
+[Token 295] in Line 8, [4,4].With value 4

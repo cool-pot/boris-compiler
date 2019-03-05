@@ -1,0 +1,8 @@
+*** Test the ability to ignore the non-sense tokens. Need to initialize the scanner with option skip_non_sense_tokens = true;
+if(a = 1)
+
+ a = a + 1; *** SOME COMMENT ?
+
+b
+
+ = 4 *** SOME COMMENT
