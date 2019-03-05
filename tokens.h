@@ -6,7 +6,7 @@
 #define COMPILERDESIGNPROJECT_TOKENS_H
 
 /* parameters */
-#define MAX_ID_LENGTH 5
+#define MAX_ID_LENGTH 50
 #define MAX_ABSOLUTE_INT_LIT 2147483648
 #define MAX_INT_LIT_LENGTH 10
 
@@ -63,7 +63,7 @@ enum yytokentype {
     OP_MINUS = 291,
     OP_MULT = 292,
     OP_DIV = 293,
-    OP_UMINUS = 294,
+    OP_UMINUS = 294,/*THIS IS NEVER USED*/
 
     /* define the others*/
     INT_LIT = 295,
@@ -75,7 +75,10 @@ enum yytokentype {
 
     /* define the values in yylval, */
     INT_LIT_VALUE = 301,
-    ID_VALUE = 302
+    ID_VALUE = 302,
+
+    /* Unknown character*/
+    UNKNOWN = 303
 
 };
 

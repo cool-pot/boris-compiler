@@ -1,0 +1,59 @@
+*** this test file contains all the legal tokens in the language, I believe
+*** this is a comment
+*** all keywords
+array
+defun
+do
+else
+elsif
+end
+foreach
+global
+if
+in
+local
+print
+return
+then
+tuple
+while
+*** all operators and other punctuation
+!=
+(
+)
+*
++
+,
+-
+.
+..
+/
+;
+<
+<->
+<=
+=
+==
+>
+>=
+[
+]
+*** numbers
+0
+000
+30
+47
+*** too large a value
+9999999999999999999999
+*** you decide what to do with this: the number is long but not large
+0000000000000000000000
+*** ID
+_
+a
+aa
+aba
+abdac
+_I_am_ID
+_I_might_be_considered_too_long *** OK to produce a warning here, or not to
+*** the ID below is DEFINITELY too long
+this_is_a_definitely_way_too_long_ID_no_questions_about_it_yeah_yeah_yeah_yeah_yeah_yeah_yeah

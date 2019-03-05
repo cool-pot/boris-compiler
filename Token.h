@@ -16,6 +16,7 @@ private:
 public:
     Token(int tok, YYSTYPE yylval, TOKEN_POSITION yytokpos);
     void printTokenSummary(void);
+    int getTok(void);
 };
 
 

@@ -17,7 +17,6 @@ extern int yylex(void);
 
 Scanner:: Scanner(FILE* file, bool skip){
     input = file;
-    yypretok = -1;
     yytok = -1;
     yytokpos.line = 1;
     yytokpos.char_start = 0;
@@ -32,37 +31,42 @@ Token* Scanner::peek(){
 
 
 Token* Scanner::next(){
-    if(yypretok == END_OF_FILE){
-        fprintf(stderr, GREEN "---------------------------------------\n" RESET);
-        fprintf(stderr, GREEN "Exit. Input finished. Meet END_OF_FILE.\n" RESET);
-        exit(0);
+    if(yytok == END_OF_FILE){
+        return new Token(yytok, yylval, yytokpos);
     } else{
         // get the return value
         Token* ret_value = new Token(yytok, yylval, yytokpos);
 
-        // process tok
-        yytok = yylex();
-        if (yytok == ID){
-            processID();
-        } else if (yytok == INT_LIT){
-            processINT_LIT();
+        // lex and update positions
+        int tok;
+        if (skip_non_sense_tokens == false){
+            tok = yylex();
+            updateTokenPosition(tok);
+            processCurrentTok(tok);
+        } else{
+            do {
+                tok = yylex();
+                updateTokenPosition(tok);
+                processCurrentTok(tok);
+            } while (tok == WS || tok == COMMENT || tok == END_OF_LINE || tok == UNKNOWN);
         }
 
-        // reset pretok from tok
-        yypretok = yytok;
+        // reset pretok and return
+        yytok = tok;
         return ret_value;
+
     }
 }
 
-void Scanner::updateTokenPosition() {
-    if (yypretok == COMMENT | yypretok == END_OF_LINE) {
+void Scanner::updateTokenPosition(int tok) {
+    int length = strlen(yytext);
+    yytokpos.char_start = yytokpos.char_finish + 1;
+    yytokpos.char_finish = yytokpos.char_start + length - 1;
+    if (tok == END_OF_LINE) {
         yytokpos.char_start = 0;
         yytokpos.char_finish = 0;
         yytokpos.line += 1;
     }
-    int length = strlen(yytext);
-    yytokpos.char_start = yytokpos.char_finish + 1;
-    yytokpos.char_finish = yytokpos.char_start + length - 1;
 }
 
 
@@ -89,10 +93,31 @@ void Scanner::processINT_LIT(){
     yylval.ival = ival;
 }
 
+void Scanner::processUNKNOWN() {
+    fprintf(stderr, RED "Meet unexpected character. UNKNOWN token generated. %s\n" RESET, yytext);
+}
+
+
 void Scanner::warning(const char* message){
     fprintf(stderr, YELLOW);
     fprintf( stderr, "[Warning]%s in Line %d, [%d,%d]\n", message, yytokpos.line, yytokpos.char_start, yytokpos.char_finish);
     fprintf(stderr, RESET);
+}
+
+void Scanner::error(const char* message){
+    fprintf(stderr, RED);
+    fprintf( stderr, "[Error]%s in Line %d, [%d,%d]\n", message, yytokpos.line, yytokpos.char_start, yytokpos.char_finish);
+    fprintf(stderr, RESET);
+}
+
+void Scanner::processCurrentTok(int tok) {
+    if (tok == ID){
+        processID();
+    } else if (tok == INT_LIT){
+        processINT_LIT();
+    } else if (tok == UNKNOWN) {
+        processUNKNOWN();
+    }
 }
 
 

@@ -25,10 +25,14 @@ Token::Token(int tok, YYSTYPE yylval, TOKEN_POSITION yytokpos) {
 void Token::printTokenSummary() {
     printf("[Token %d] in Line %d, [%d,%d].", this->tok, this->yytokpos.line, this->yytokpos.char_start, this->yytokpos.char_finish);
     if(this->tok == ID){
-        printf("With value %s\n", this->yylval.sval);
+        printf("With value \'%s\'\n", this->yylval.sval);
     } else if (this->tok == INT_LIT){
         printf("With value %u\n", this->yylval.ival);
     } else{
         printf("\n");
     }
+}
+
+int Token::getTok() {
+    return tok;
 }

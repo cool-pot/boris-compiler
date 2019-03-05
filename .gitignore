@@ -1,3 +1,4 @@
 .idea/
 lex.yy.c
 example.input
+.DS_Store
