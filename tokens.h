@@ -78,8 +78,10 @@ enum yytokentype {
     ID_VALUE = 302,
 
     /* Unknown character*/
-    UNKNOWN = 303
+    UNKNOWN = 303,
 
+    /* UPDATES */
+    KW_FOR = 304
 };
 
 
