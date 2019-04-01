@@ -2,5 +2,9 @@
 lex.yy.c
 example.input
 .DS_Store
-boris.y
 boris_scanner
+boris
+.vscode/
+boris.tab*
+boris.lex*
+grammar*
