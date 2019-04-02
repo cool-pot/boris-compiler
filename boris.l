@@ -54,9 +54,6 @@ print {  return PRINT;}
 - { return OP_MINUS;}
 \* { return OP_MULT;}
 \/ { return OP_DIV;}
-\*\*\*.* { return COMMENT; }
-\n {  return END_OF_LINE;}
-[ \t] {  return WS;}
 [a-zA-Z_]+ { 
     if(yyleng > MAX_ID_LENGTH){ 
         yyerror("[Lexer Error]ID length is too long. Will be truncted."); 
@@ -75,6 +72,9 @@ print {  return PRINT;}
     int ival = (int) val;
     yylval.ival = ival;
     return INT_LIT;}
-. { yyerror("[Lexer Error]Mystery character %c", *yytext); return UNKNOWN;} 
+\*\*\*.* { /* return COMMENT; */}
+\n {  /* return END_OF_LINE; */}
+[ \t] {  /* return WS; */}
+. { yyerror("[Lexer Error]Mystery character %c", *yytext); /* return UNKNOWN; */} 
 
 %%

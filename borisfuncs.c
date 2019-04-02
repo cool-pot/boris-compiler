@@ -21,6 +21,7 @@ void lexerTester(){
     int tok;
     do {
         tok = yylex();
+        if(tok == 0) break;
         printf("token[%d].", tok);
         if (tok == END_OF_LINE) {
                 printf("[\\n]");\
@@ -39,7 +40,7 @@ void lexerTester(){
         }
         
         printf("\n");
-    } while (tok);
+    } while (1);
 }
 
 struct pNode *newpNode(int type, ...){
@@ -92,5 +93,6 @@ struct pNode *newiNode(int ival){
 }
 
 int main(){
-    return yyparse();
+    //return yyparse();
+    lexerTester();
 }
