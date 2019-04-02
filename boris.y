@@ -9,7 +9,7 @@
 %union {
   int ival;
   char* sval;
-  struct Node* pnode;
+  struct pNode* pnode;
 }
 
 /* define key words, constant strings*/
@@ -44,7 +44,6 @@
 %token OP_MINUS
 %token OP_MULT
 %token OP_DIV
-%token OP_UMINUS
 %token OP_LBRAK
 %token OP_RBRAK
 %token OP_SEMI
@@ -62,13 +61,11 @@
 %token COMMENT
 %token WS
 %token END_OF_LINE
-%token END_OF_FILE
 %token UNKNOWN
 
 /* define the values to be used in non-terminals*/
 
 /*
-%type<pnode> input
 %type<pnode> sdd_list
 %type<pnode> sdd
 %type<pnode> comma_expr_list
@@ -89,12 +86,20 @@
 %type<pnode> bool_op
 %type<pnode> comma_lhsitem_list
 %type<pnode> lhs
-%type<pnode> lhsitem
-%type<pnode> expr*/
+%type<pnode> lhsitem*/
+%type<pnode> expr
+
+%start input
+
 %% 
 
+input:  /* nothing */
+    | expr input
+;
 
-input:  END_OF_FILE
+expr: ID { $$ = newsNode(yylval.sval);}
+    | INT_LIT { $$ = newiNode(yylval.ival);}
+    | WS
 ;
 
 %%

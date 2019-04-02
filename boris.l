@@ -54,17 +54,14 @@ print {  return PRINT;}
 - { return OP_MINUS;}
 \* { return OP_MULT;}
 \/ { return OP_DIV;}
-\*\*\*.* {  return COMMENT;}
+\*\*\*.* { return COMMENT; }
 \n {  return END_OF_LINE;}
 [ \t] {  return WS;}
 [a-zA-Z_]+ { 
     if(yyleng > MAX_ID_LENGTH){ 
         yyerror("[Lexer Error]ID length is too long. Will be truncted."); 
     } 
-    char sval[MAX_ID_LENGTH+1];
-    strncpy ( sval, yytext, MAX_ID_LENGTH);
-    sval[MAX_ID_LENGTH] = '\0';
-    yylval.sval = sval;
+    yylval.sval = strndup(yytext, MAX_ID_LENGTH); //TODO, NEED FREE IN THE FUTURE
     return ID;}
 [0-9]+ { 
     long int val = atol(yytext);
@@ -79,6 +76,5 @@ print {  return PRINT;}
     yylval.ival = ival;
     return INT_LIT;}
 . { yyerror("[Lexer Error]Mystery character %c", *yytext); return UNKNOWN;} 
-<<EOF>> { return END_OF_FILE; }
 
 %%
