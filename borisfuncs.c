@@ -61,8 +61,12 @@ struct pNode *newpNode(int type, ...){
         exit(996);
     }
     parent->pnodetype = type;
-    for ( int i = 0; i < num; i++ ) {
+    int i = 0;
+    for ( ; i < num; i++ ) {
         parent->childs[i] = va_arg ( arguments, struct pNode * ); 
+    }
+    for ( ; i < PARSE_TREE_MAX_CHILD; i++) {
+        parent->childs[i] = NULL;
     }
     va_end ( arguments );
     return parent; 
@@ -92,7 +96,74 @@ struct pNode *newiNode(int ival){
     return (struct pNode *)parent;
 }
 
+
+struct pNode *newplaceholderNode(int tok){
+    struct placeholderNode * parent = malloc(sizeof(struct placeholderNode));
+    if(!parent) {
+        yyerror("Out of space.");
+        exit(0);
+    }
+    parent->pnodetype = NODETYPE_PLACEHOLDER;
+    parent->tok = tok; 
+    printf("[Succesfully] build a placeholderNode[%d]: %d\n", parent->pnodetype, parent->tok); //TODO, DEBUG
+    return (struct pNode *)parent;
+}
+
+void printManySpace(int count){
+    for (int i = 0; i < count; i++) printf(" ");
+}
+
+void visualize(struct pNode *p, int level){
+    char nodetype2nodestr[][50] = {
+        "STRING",
+        "INT",
+        "PLACEHOLDER",
+        "EXPR_COMMA_EXPR",
+        "EXPR_MINUS_EXPR",
+        "EXPR_PLUS_EXPR",
+        "EXPR_DIV_EXPR",
+        "EXPR_MULT_EXPR",
+        "LPAR_EXPR_LPAR",
+        "FUNCTION_CALL",
+        "SINGLE_ID_AS_EXPR",
+        "SINGLE_FUNC_CALL_AS_EXPR"
+    };
+
+    switch(p->pnodetype) {
+        case NODETYPE_STRING: {
+            printManySpace(level*4);
+            printf("[STRING]%s\n",((struct sNode*)p)->sval);
+            break;
+        }
+        case NODETYPE_PLACEHOLDER: {
+            printManySpace(level*4); 
+            printf("[PLACEHOLDER]%d\n",((struct placeholderNode*)p)->tok);
+            break;
+        }
+        case NODETYPE_EXPR_COMMA_EXPR:
+        case NODETYPE_EXPR_MINUS_EXPR:
+        case NODETYPE_EXPR_PLUS_EXPR:
+        case NODETYPE_EXPR_MULT_EXPR:
+        case NODETYPE_EXPR_DIV_EXPR:
+        case NODETYPE_LPAR_EXPR_RPAR:
+        case NODETYPE_FUNCTION_CALL:
+        case NODETYPE_SINGLE_FUNC_CALL_AS_EXPR:
+        case NODETYPE_SINGLE_ID_AS_EXPR:{
+            printManySpace(level*4); 
+            char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_STRING];
+            printf("[%s]\n", nodestr);
+            for (int i = 0; i < PARSE_TREE_MAX_CHILD; i++){
+                struct pNode *child = p->childs[i];
+                if (child == NULL) break;
+                visualize(child, level+1);
+            }
+            break;
+        }
+        default: printf("internal error: bad node type%c\n", p->pnodetype);
+    }
+}
+
 int main(){
-    //return yyparse();
-    lexerTester();
+    return yyparse();
+    //lexerTester();
 }

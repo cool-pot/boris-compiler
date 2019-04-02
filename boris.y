@@ -61,6 +61,7 @@
 %token COMMENT
 %token WS
 %token END_OF_LINE
+%token END_OF_FILE
 %token UNKNOWN
 
 /* define the values to be used in non-terminals*/
@@ -93,13 +94,20 @@
 
 %% 
 
-input:  /* nothing */
-    | expr input
+%left OP_COMMA;
+%left OP_MINUS OP_PLUS;
+%left OP_DIV OP_MULT;
+
+input:  expr { printf("\n> Start visualization:\n"); visualize($1, 0);}
 ;
 
-expr: ID { $$ = newsNode(yylval.sval);}
-    | INT_LIT { $$ = newiNode(yylval.ival);}
-    | WS
+expr:  expr OP_COMMA expr { $$ = newpNode(NODETYPE_EXPR_COMMA_EXPR, 3, $1, newplaceholderNode(OP_COMMA), $3);}
+    | expr OP_MINUS expr { $$ = newpNode(NODETYPE_EXPR_MINUS_EXPR, 3, $1, newplaceholderNode(OP_MINUS), $3);}
+    | expr OP_PLUS expr { $$ = newpNode(NODETYPE_EXPR_PLUS_EXPR, 3, $1, newplaceholderNode(OP_PLUS), $3);}
+    | expr OP_DIV expr { $$ = newpNode(NODETYPE_EXPR_DIV_EXPR, 3, $1, newplaceholderNode(OP_DIV), $3);}
+    | expr OP_MULT expr { $$ = newpNode(NODETYPE_EXPR_MULT_EXPR, 3, $1, newplaceholderNode(OP_MULT), $3);}
+    | OP_LPAR expr OP_RPAR { $$ = newpNode(NODETYPE_LPAR_EXPR_RPAR, 3, newplaceholderNode(OP_LPAR), $2, newplaceholderNode(OP_RPAR));}
+    | ID { $$ = newpNode(NODETYPE_SINGLE_ID_AS_EXPR, 1, newsNode(yylval.sval));}
 ;
 
 %%

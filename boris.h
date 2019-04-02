@@ -24,15 +24,16 @@
 /* Parse Tree Node Types*/
 #define NODETYPE_STRING 1024
 #define NODETYPE_INT 1025
-#define NODETYPE_EXPR_COMMA_EXPR 1026
-
-
-/* interface to the lexer */
-extern int yylineno; /* from lexer */
-extern char *yytext; /* from lexer */
-extern int yylex(); /* from lexer */
-extern int yyparse(); /* from parser */
-void yyerror(char *s, ...);
+#define NODETYPE_PLACEHOLDER 1026
+#define NODETYPE_EXPR_COMMA_EXPR 1027
+#define NODETYPE_EXPR_MINUS_EXPR 1028
+#define NODETYPE_EXPR_PLUS_EXPR 1029
+#define NODETYPE_EXPR_DIV_EXPR 1030
+#define NODETYPE_EXPR_MULT_EXPR 1031
+#define NODETYPE_LPAR_EXPR_RPAR 1032
+#define NODETYPE_FUNCTION_CALL 1033
+#define NODETYPE_SINGLE_ID_AS_EXPR 1034
+#define NODETYPE_SINGLE_FUNC_CALL_AS_EXPR 1035
 
 /* Nodes in the Parse Tree */
 struct pNode {
@@ -52,10 +53,25 @@ struct iNode {
   int ival;
 };
 
+struct placeholderNode {
+  // a terminal node for keywords, operators, constant string tokens. etc.
+  int pnodetype; // = NODETYPE_PLACEHOLDEER
+  int tok;
+};
+
+/* interface to the lexer */
+extern int yylineno; /* from lexer */
+extern char *yytext; /* from lexer */
+extern int yylex(); /* from lexer */
+extern int yyparse(); /* from parser */
+void yyerror(char *s, ...);
+void visualize(struct pNode *p, int level);
+
 
 /* build a Parse Tree*/
 struct pNode *newpNode(int type, ...);
 struct pNode *newsNode(char* sval);
 struct pNode *newiNode(int ival);
+struct pNode *newplaceholderNode(int ival);
 
 #endif // COMPILERDESIGNPROJECT_BORIS_H
