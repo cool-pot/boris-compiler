@@ -7,3 +7,6 @@ build: boris.l boris.y boris.h borisfuncs.c
 	bison -d boris.y && \
 	flex -oboris.lex.c boris.l && \
 	cc -o boris boris.tab.c boris.lex.c borisfuncs.c
+
+debug: boris.y
+	bison -d --report=look-ahead,itemset boris.y

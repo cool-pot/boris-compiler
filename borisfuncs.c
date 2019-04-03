@@ -78,7 +78,7 @@ struct pNode *newsNode(char* sval){
         yyerror("Out of space.");
         exit(0);
     }
-    parent->pnodetype = NODETYPE_STRING;
+    parent->pnodetype = NODETYPE_ID;
     parent->sval = sval; 
     printf("[Succesfully] build a sNode[%d]: %s\n", parent->pnodetype, parent->sval); //TODO, DEBUG
     return (struct pNode *)parent;
@@ -115,7 +115,7 @@ void printManySpace(int count){
 
 void visualize(struct pNode *p, int level){
     char nodetype2nodestr[][50] = {
-        "STRING",
+        "ID",
         "INT",
         "PLACEHOLDER",
         "EXPR_COMMA_EXPR",
@@ -124,20 +124,21 @@ void visualize(struct pNode *p, int level){
         "EXPR_DIV_EXPR",
         "EXPR_MULT_EXPR",
         "LPAR_EXPR_LPAR",
-        "FUNCTION_CALL",
         "SINGLE_ID_AS_EXPR",
-        "SINGLE_FUNC_CALL_AS_EXPR"
+        "FUNC_CALL_AS_EXPR"
     };
 
     switch(p->pnodetype) {
-        case NODETYPE_STRING: {
+        case NODETYPE_ID: {
             printManySpace(level*4);
-            printf("[STRING]%s\n",((struct sNode*)p)->sval);
+            char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
+            printf("[%s]%s\n", nodestr, ((struct sNode*)p)->sval);
             break;
         }
         case NODETYPE_PLACEHOLDER: {
             printManySpace(level*4); 
-            printf("[PLACEHOLDER]%d\n",((struct placeholderNode*)p)->tok);
+            char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
+            printf("[%s]%d\n", nodestr, ((struct placeholderNode*)p)->tok);
             break;
         }
         case NODETYPE_EXPR_COMMA_EXPR:
@@ -146,11 +147,10 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_EXPR_MULT_EXPR:
         case NODETYPE_EXPR_DIV_EXPR:
         case NODETYPE_LPAR_EXPR_RPAR:
-        case NODETYPE_FUNCTION_CALL:
-        case NODETYPE_SINGLE_FUNC_CALL_AS_EXPR:
+        case NODETYPE_FUNC_CALL_AS_EXPR:
         case NODETYPE_SINGLE_ID_AS_EXPR:{
             printManySpace(level*4); 
-            char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_STRING];
+            char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s]\n", nodestr);
             for (int i = 0; i < PARSE_TREE_MAX_CHILD; i++){
                 struct pNode *child = p->childs[i];
@@ -165,5 +165,4 @@ void visualize(struct pNode *p, int level){
 
 int main(){
     return yyparse();
-    //lexerTester();
 }

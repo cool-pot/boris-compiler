@@ -87,9 +87,9 @@
 %type<pnode> bool_op
 %type<pnode> comma_lhsitem_list
 %type<pnode> lhs
-%type<pnode> lhsitem*/
+%type<pnode> lhsitem
+%type<pnode> func_call*/
 %type<pnode> expr
-
 %start input
 
 %% 
@@ -97,6 +97,9 @@
 %left OP_COMMA;
 %left OP_MINUS OP_PLUS;
 %left OP_DIV OP_MULT;
+
+%nonassoc NORMAL_ID;
+%nonassoc FUNCTION_ID;
 
 input:  expr { printf("\n> Start visualization:\n"); visualize($1, 0);}
 ;
@@ -107,7 +110,8 @@ expr:  expr OP_COMMA expr { $$ = newpNode(NODETYPE_EXPR_COMMA_EXPR, 3, $1, newpl
     | expr OP_DIV expr { $$ = newpNode(NODETYPE_EXPR_DIV_EXPR, 3, $1, newplaceholderNode(OP_DIV), $3);}
     | expr OP_MULT expr { $$ = newpNode(NODETYPE_EXPR_MULT_EXPR, 3, $1, newplaceholderNode(OP_MULT), $3);}
     | OP_LPAR expr OP_RPAR { $$ = newpNode(NODETYPE_LPAR_EXPR_RPAR, 3, newplaceholderNode(OP_LPAR), $2, newplaceholderNode(OP_RPAR));}
-    | ID { $$ = newpNode(NODETYPE_SINGLE_ID_AS_EXPR, 1, newsNode($1));}
+    | ID { $$ = newpNode(NODETYPE_SINGLE_ID_AS_EXPR, 1, newsNode($1));} %prec NORMAL_ID
+    | ID expr{ $$ = newpNode(NODETYPE_FUNC_CALL_AS_EXPR, 2, newsNode($1), $2); } %prec FUNCTION_ID
 ;
 
 %%
