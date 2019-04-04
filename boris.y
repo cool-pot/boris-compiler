@@ -86,9 +86,8 @@
 %type<pnode> bool_expr
 %type<pnode> bool_op
 %type<pnode> comma_lhsitem_list
-%type<pnode> lhs
+%type<pnode> lhs*/
 %type<pnode> lhsitem
-%type<pnode> func_call*/
 %type<pnode> expr
 %start input
 
@@ -105,7 +104,12 @@
 %nonassoc EXPR_TUPLE_ID;
 %nonassoc EXPR_ARRAY_ID;
 
-input: expr { printf("\n> Start visualization:\n"); visualize($1, 0);}
+input: lhsitem { printf("\n> Start visualization:\n"); visualize($1, 0);}
+;
+
+lhsitem:  ID { $$ = newpNode(NODETYPE_SINGLE_ID_AS_LHSITEM, 1, newsNode($1));} 
+    | ID OP_DOT INT_LIT  { $$ = newpNode(NODETYPE_TUPLE_REF_AS_LHSITEM, 3, newsNode($1), newplaceholderNode(OP_DOT), newiNode($3));}
+    | ID OP_LBRAK expr OP_RBRAK { $$ = newpNode(NODETYPE_ARRAY_REF_AS_LHSITEM, 4, newsNode($1), newplaceholderNode(OP_LBRAK), $3, newplaceholderNode(OP_RBRAK));}
 ;
 
 expr: expr OP_COMMA expr { $$ = newpNode(NODETYPE_EXPR_COMMA_EXPR, 3, $1, newplaceholderNode(OP_COMMA), $3);}

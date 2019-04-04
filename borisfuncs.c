@@ -127,7 +127,10 @@ void visualize(struct pNode *p, int level){
         "SINGLE_ID_AS_EXPR",
         "FUNC_CALL_AS_EXPR",
         "TUPLE_REF_AS_EXPR",
-        "ARRAY_REF_AS_EXPR"
+        "ARRAY_REF_AS_EXPR",
+        "SINGLE_ID_AS_LHSITEM",
+        "TUPLE_REF_AS_LHSITEM",
+        "ARRAY_REF_AS_LHSITEM"
     };
 
     switch(p->pnodetype) {
@@ -158,7 +161,10 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_FUNC_CALL_AS_EXPR:
         case NODETYPE_SINGLE_ID_AS_EXPR:
         case NODETYPE_TUPLE_REF_AS_EXPR:
-        case NODETYPE_ARRAY_REF_AS_EXPR:{
+        case NODETYPE_ARRAY_REF_AS_EXPR:
+        case NODETYPE_SINGLE_ID_AS_LHSITEM:
+        case NODETYPE_TUPLE_REF_AS_LHSITEM:
+        case NODETYPE_ARRAY_REF_AS_LHSITEM:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s]\n", nodestr);
