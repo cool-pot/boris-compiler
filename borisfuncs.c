@@ -125,7 +125,9 @@ void visualize(struct pNode *p, int level){
         "EXPR_MULT_EXPR",
         "LPAR_EXPR_LPAR",
         "SINGLE_ID_AS_EXPR",
-        "FUNC_CALL_AS_EXPR"
+        "FUNC_CALL_AS_EXPR",
+        "TUPLE_REF_AS_EXPR",
+        "ARRAY_REF_AS_EXPR"
     };
 
     switch(p->pnodetype) {
@@ -133,6 +135,12 @@ void visualize(struct pNode *p, int level){
             printManySpace(level*4);
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s]%s\n", nodestr, ((struct sNode*)p)->sval);
+            break;
+        }
+        case NODETYPE_INT: {
+            printManySpace(level*4); 
+            char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
+            printf("[%s]%d\n", nodestr, ((struct iNode*)p)->ival);
             break;
         }
         case NODETYPE_PLACEHOLDER: {
@@ -148,7 +156,9 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_EXPR_DIV_EXPR:
         case NODETYPE_LPAR_EXPR_RPAR:
         case NODETYPE_FUNC_CALL_AS_EXPR:
-        case NODETYPE_SINGLE_ID_AS_EXPR:{
+        case NODETYPE_SINGLE_ID_AS_EXPR:
+        case NODETYPE_TUPLE_REF_AS_EXPR:
+        case NODETYPE_ARRAY_REF_AS_EXPR:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s]\n", nodestr);

@@ -3,6 +3,7 @@ lex.yy.c
 example.input
 .DS_Store
 boris_scanner
+boris_parser
 boris
 .vscode/
 boris.tab*
