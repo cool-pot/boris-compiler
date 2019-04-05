@@ -41,6 +41,7 @@
 #define NODETYPE_LHS 1040
 #define NODETYPE_COMMA_LHSITEN_LIST 1041
 #define NODETYPE_BOOLEXPR 1042
+#define NODETYPE_RANGE 1043
 
 /* Nodes in the Parse Tree */
 struct pNode {

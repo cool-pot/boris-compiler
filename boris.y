@@ -81,8 +81,8 @@
 %type<pnode> elsif_sentence_list
 %type<pnode> else_sentence
 %type<pnode> statement
-%type<pnode> array_id
-%type<pnode> range*/
+%type<pnode> array_id*/
+%type<pnode> range
 %type<pnode> bool_expr
 %type<pnode> bool_op
 %type<pnode> lhs
@@ -105,7 +105,10 @@
 %nonassoc EXPR_TUPLE_ID;
 %nonassoc EXPR_ARRAY_ID;
 
-input: bool_expr { printf("\n> Start visualization\n"); visualize($1, 0);}
+input: range { printf("\n> Start visualization\n"); visualize($1, 0);}
+;
+
+range: expr OP_DOTDOT expr { $$ = newpNode(NODETYPE_RANGE, 3, $1, newplaceholderNode(OP_DOTDOT), $3); }
 ;
 
 bool_expr: expr bool_op expr { $$ = newpNode(NODETYPE_BOOLEXPR, 3, $1, $2, $3); }

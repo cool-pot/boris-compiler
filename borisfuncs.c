@@ -134,6 +134,7 @@ void visualize(struct pNode *p, int level){
         "LHS",                      //1040
         "COMMA_LHSITEN_LIST",       //1041
         "BOOLEXPR",                 //1042
+        "RANGE",                    //1043
     };  
 
     switch(p->pnodetype) {
@@ -170,7 +171,8 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_ARRAY_REF_AS_LHSITEM:
         case NODETYPE_LHS:
         case NODETYPE_COMMA_LHSITEN_LIST:
-        case NODETYPE_BOOLEXPR:{
+        case NODETYPE_BOOLEXPR:
+        case NODETYPE_RANGE:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s-%d]\n", nodestr, p->pnodetype);
