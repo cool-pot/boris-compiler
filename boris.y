@@ -28,8 +28,8 @@
 %token KW_FOREACH
 %token KW_FOR
 %token KW_IN
-%token RETURN
-%token PRINT
+%token KW_RETURN
+%token KW_PRINT
 
 /* define operators*/
 %token OP_DOTDOT
@@ -128,8 +128,10 @@ statement: lhs OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_LHS_ASSIGN_EXPR_A
         | KW_WHILE bool_expr KW_DO statement_list KW_END KW_WHILE { $$ = newpNode(NODETYPE_WHILE_STATEMENT, 6, newplaceholderNode(KW_WHILE), $2, newplaceholderNode(KW_DO), $4, newplaceholderNode(KW_END), newplaceholderNode(KW_WHILE));}
         | KW_IF bool_expr KW_THEN statement_list elsif_sentence_list KW_END KW_IF { $$ = newpNode(NODETYPE_IF_STATEMENT, 7, newplaceholderNode(KW_IF), $2, newplaceholderNode(KW_THEN), $4, $5, newplaceholderNode(KW_END), newplaceholderNode(KW_IF));}
         | KW_IF bool_expr KW_THEN statement_list elsif_sentence_list else_sentence KW_END KW_IF { $$ = newpNode(NODETYPE_IF_ELSE_STATEMENT, 8, newplaceholderNode(KW_IF), $2, newplaceholderNode(KW_THEN), $4, $5, $6, newplaceholderNode(KW_END), newplaceholderNode(KW_IF));}
-        | KW_FOREACH ID KW_IN range KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_RANGE, 8, newplaceholderNode(KW_FOREACH), newsNode($2), newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
-        | KW_FOREACH ID KW_IN array_id KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_ARRAYID, 8, newplaceholderNode(KW_FOREACH), newsNode($2), newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
+        | KW_FOREACH ID KW_IN range KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_RANGE_STATEMENT, 8, newplaceholderNode(KW_FOREACH), newsNode($2), newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
+        | KW_FOREACH ID KW_IN array_id KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_ARRAYID_STATEMENT, 8, newplaceholderNode(KW_FOREACH), newsNode($2), newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
+        | KW_RETURN expr OP_SEMI { $$ = newpNode(NODETYPE_RETURN_STATEMENT, 3, newplaceholderNode(KW_RETURN), $2, newplaceholderNode(OP_SEMI));}
+	    | KW_PRINT expr OP_SEMI { $$ = newpNode(NODETYPE_PRINT_STATEMENT, 3, newplaceholderNode(KW_PRINT), $2, newplaceholderNode(OP_SEMI));}
 ;
 
 array_id: ID { $$ = newpNode(NODETYPE_ARRAY_ID, 1, newsNode($1));} 

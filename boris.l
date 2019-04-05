@@ -33,8 +33,8 @@ else {  return KW_ELSE;}
 foreach { return KW_FOREACH;}
 for { return KW_FOR;}
 in {  return KW_IN;}
-return { return RETURN;}
-print {  return PRINT;}
+return { return KW_RETURN;}
+print {  return KW_PRINT;}
 \.\. {  return OP_DOTDOT;}
 , {  return OP_COMMA;}
 \. {  return OP_DOT;}
