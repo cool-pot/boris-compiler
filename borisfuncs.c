@@ -60,6 +60,7 @@ struct pNode *newpNode(int type, ...){
         yyerror("Parse tree node initialization error, too many child nodes");
         exit(996);
     }
+    parent->childscount = num;
     parent->pnodetype = type;
     int i = 0;
     for ( ; i < num; i++ ) {
@@ -79,6 +80,7 @@ struct pNode *newsNode(char* sval){
         exit(0);
     }
     parent->pnodetype = NODETYPE_ID;
+    parent->childscount = 0;
     parent->sval = sval; 
     printf("[Succesfully] build a sNode[%d]: %s\n", parent->pnodetype, parent->sval); //TODO, DEBUG
     return (struct pNode *)parent;
@@ -91,6 +93,7 @@ struct pNode *newiNode(int ival){
         exit(0);
     }
     parent->pnodetype = NODETYPE_INT;
+    parent->childscount = 0;
     parent->ival = ival; 
     printf("[Succesfully] build a iNode[%d]: %d\n", parent->pnodetype, parent->ival); //TODO, DEBUG
     return (struct pNode *)parent;
@@ -104,6 +107,7 @@ struct pNode *newplaceholderNode(int tok){
         exit(0);
     }
     parent->pnodetype = NODETYPE_PLACEHOLDER;
+    parent->childscount = 0;
     parent->tok = tok; 
     printf("[Succesfully] build a placeholderNode[%d]: %d\n", parent->pnodetype, parent->tok); //TODO, DEBUG
     return (struct pNode *)parent;
@@ -114,27 +118,41 @@ void printManySpace(int count){
 }
 
 void visualize(struct pNode *p, int level){
+    if (p == NULL) {
+        printManySpace(level*4);
+        printf("[EMPTY_NODE]\n"); 
+        return;
+    }
     char nodetype2nodestr[][50] = {
-        "ID",                       //1024
-        "INT",                      //1025
-        "PLACEHOLDER",              //1026
-        "EXPR_COMMA_EXPR",          //1027
-        "EXPR_MINUS_EXPR",          //1028
-        "EXPR_PLUS_EXPR",           //1029
-        "EXPR_DIV_EXPR",            //1030
-        "EXPR_MULT_EXPR",           //1031
-        "LPAR_EXPR_LPAR",           //1032
-        "SINGLE_ID_AS_EXPR",        //1033
-        "FUNC_CALL_AS_EXPR",        //1034
-        "TUPLE_REF_AS_EXPR",        //1035
-        "ARRAY_REF_AS_EXPR",        //1036
-        "SINGLE_ID_AS_LHSITEM",     //1037
-        "TUPLE_REF_AS_LHSITEM",     //1038
-        "ARRAY_REF_AS_LHSITEM",     //1039
-        "LHS",                      //1040
-        "COMMA_LHSITEN_LIST",       //1041
-        "BOOLEXPR",                 //1042
-        "RANGE",                    //1043
+        "ID",                                       //1024
+        "INT",                                      //1025
+        "PLACEHOLDER",                              //1026
+        "EXPR_COMMA_EXPR",                          //1027
+        "EXPR_MINUS_EXPR",                          //1028
+        "EXPR_PLUS_EXPR",                           //1029
+        "EXPR_DIV_EXPR",                            //1030
+        "EXPR_MULT_EXPR",                           //1031
+        "LPAR_EXPR_LPAR",                           //1032
+        "SINGLE_ID_AS_EXPR",                        //1033
+        "FUNC_CALL_AS_EXPR",                        //1034
+        "TUPLE_REF_AS_EXPR",                        //1035
+        "ARRAY_REF_AS_EXPR",                        //1036
+        "SINGLE_ID_AS_LHSITEM",                     //1037
+        "TUPLE_REF_AS_LHSITEM",                     //1038
+        "ARRAY_REF_AS_LHSITEM",                     //1039
+        "LHS",                                      //1040
+        "COMMA_LHSITEN_LIST",                       //1041
+        "BOOLEXPR",                                 //1042
+        "RANGE",                                    //1043
+        "LHS_ASSIGN_EXPR_AS_STATEMENT",             //1044
+        "LHS_EXCHANGE_LHS_AS_STATEMENT",            //1045
+        "STATEMENT_LIST",                           //1046
+        "WHILE_STATEMENT",                          //1047
+        "ELSIF_SENTENCE",                           //1048
+        "ELSE_SENTENCE",                            //1049
+        "ELSIF_SENTENCE_LIST",                      //1050
+        "IF_STATEMENT",                             //1051
+        "IF_ELSE_STATEMENT",                        //1052
     };  
 
     switch(p->pnodetype) {
@@ -172,18 +190,26 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_LHS:
         case NODETYPE_COMMA_LHSITEN_LIST:
         case NODETYPE_BOOLEXPR:
-        case NODETYPE_RANGE:{
+        case NODETYPE_RANGE:
+        case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT:
+        case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT:
+        case NODETYPE_STATEMENT_LIST:
+        case NODETYPE_WHILE_STATEMENT:
+        case NODETYPE_ELSIF_SENTENCE:
+        case NODETYPE_ELSE_SENTENCE:
+        case NODETYPE_ELSIF_SENTENCE_LIST:
+        case NODETYPE_IF_STATEMENT:
+        case NODETYPE_IF_ELSE_STATEMENT:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s-%d]\n", nodestr, p->pnodetype);
-            for (int i = 0; i < PARSE_TREE_MAX_CHILD; i++){
+            for (int i = 0; i < p->childscount; i++){
                 struct pNode *child = p->childs[i];
-                if (child == NULL) break;
                 visualize(child, level+1);
             }
             break;
         }
-        default: printf("internal error: bad node type%c\n", p->pnodetype);
+        default: printf("internal error: bad node type%d\n", p->pnodetype);
     }
 }
 

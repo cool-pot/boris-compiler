@@ -76,12 +76,12 @@
 %type<pnode> sd_list
 %type<pnode> sd
 %type<pnode> body
-%type<pnode> statement_list
-%type<pnode> elsif_sentence
+%type<pnode> array_id*/
 %type<pnode> elsif_sentence_list
 %type<pnode> else_sentence
+%type<pnode> elsif_sentence
+%type<pnode> statement_list
 %type<pnode> statement
-%type<pnode> array_id*/
 %type<pnode> range
 %type<pnode> bool_expr
 %type<pnode> bool_op
@@ -105,7 +105,27 @@
 %nonassoc EXPR_TUPLE_ID;
 %nonassoc EXPR_ARRAY_ID;
 
-input: range { printf("\n> Start visualization\n"); visualize($1, 0);}
+input: statement{ printf("\n> Start visualization\n"); visualize($1, 0);}
+;
+
+elsif_sentence: KW_ELSIF bool_expr KW_THEN statement_list { $$ = newpNode(NODETYPE_ELSIF_SENTENCE, 4, newplaceholderNode(KW_ELSIF), $2, newplaceholderNode(KW_THEN), $4);}
+;
+
+else_sentence: KW_ELSE statement_list { $$ = newpNode(NODETYPE_ELSE_SENTENCE, 2, newplaceholderNode(KW_ELSE), $2);}
+;
+
+elsif_sentence_list: /* empty */ { $$ = NULL; } 
+        | elsif_sentence elsif_sentence_list{ $$ = newpNode(NODETYPE_ELSIF_SENTENCE_LIST, 2, $1, $2); }
+;
+
+statement_list: /* empty */ { $$ = NULL; } 
+        | statement statement_list{ $$ = newpNode(NODETYPE_STATEMENT_LIST, 2, $1, $2); }
+
+statement: lhs OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT, 4, $1, newplaceholderNode(OP_ASSIGN), $3, newplaceholderNode(OP_SEMI));}
+        | lhs OP_EXCHANGE lhs OP_SEMI { $$ = newpNode(NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT, 4, $1, newplaceholderNode(OP_EXCHANGE), $3, newplaceholderNode(OP_SEMI));}
+        | KW_WHILE bool_expr KW_DO statement_list KW_END KW_WHILE { $$ = newpNode(NODETYPE_WHILE_STATEMENT, 6, newplaceholderNode(KW_WHILE), $2, newplaceholderNode(KW_DO), $4, newplaceholderNode(KW_END), newplaceholderNode(KW_WHILE));}
+        | KW_IF bool_expr KW_THEN statement_list elsif_sentence_list KW_END KW_IF { $$ = newpNode(NODETYPE_IF_STATEMENT, 7, newplaceholderNode(KW_IF), $2, newplaceholderNode(KW_THEN), $4, $5, newplaceholderNode(KW_END), newplaceholderNode(KW_IF));}
+        | KW_IF bool_expr KW_THEN statement_list elsif_sentence_list else_sentence KW_END KW_IF { $$ = newpNode(NODETYPE_IF_ELSE_STATEMENT, 8, newplaceholderNode(KW_IF), $2, newplaceholderNode(KW_THEN), $4, $5, $6, newplaceholderNode(KW_END), newplaceholderNode(KW_IF));}
 ;
 
 range: expr OP_DOTDOT expr { $$ = newpNode(NODETYPE_RANGE, 3, $1, newplaceholderNode(OP_DOTDOT), $3); }

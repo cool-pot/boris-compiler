@@ -42,28 +42,41 @@
 #define NODETYPE_COMMA_LHSITEN_LIST 1041
 #define NODETYPE_BOOLEXPR 1042
 #define NODETYPE_RANGE 1043
+#define NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT 1044
+#define NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT 1045
+#define NODETYPE_STATEMENT_LIST 1046
+#define NODETYPE_WHILE_STATEMENT 1047
+#define NODETYPE_ELSIF_SENTENCE 1048
+#define NODETYPE_ELSE_SENTENCE 1049
+#define NODETYPE_ELSIF_SENTENCE_LIST 1050
+#define NODETYPE_IF_STATEMENT 1051
+#define NODETYPE_IF_ELSE_STATEMENT 1052
 
 /* Nodes in the Parse Tree */
 struct pNode {
   int pnodetype;
+  int childscount;
   struct pNode* childs[PARSE_TREE_MAX_CHILD];
 };
 
 struct sNode {
   // a terminal node for storing string 
-  int pnodetype; // = NODETYPE_STRING
+  int pnodetype; // = NODETYPE_ID
+  int childscount; // = 0
   char *sval;
 };
 
 struct iNode {
   // a terminal node for storing integer
   int pnodetype; // = NODETYPE_INT
+  int childscount; // = 0
   int ival;
 };
 
 struct placeholderNode {
   // a terminal node for keywords, operators, constant string tokens. etc.
   int pnodetype; // = NODETYPE_PLACEHOLDEER
+  int childscount; // = 0
   int tok;
 };
 
@@ -80,6 +93,6 @@ void visualize(struct pNode *p, int level);
 struct pNode *newpNode(int type, ...);
 struct pNode *newsNode(char* sval);
 struct pNode *newiNode(int ival);
-struct pNode *newplaceholderNode(int ival);
+struct pNode *newplaceholderNode(int tok);
 
 #endif // COMPILERDESIGNPROJECT_BORIS_H
