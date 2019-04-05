@@ -115,23 +115,25 @@ void printManySpace(int count){
 
 void visualize(struct pNode *p, int level){
     char nodetype2nodestr[][50] = {
-        "ID",
-        "INT",
-        "PLACEHOLDER",
-        "EXPR_COMMA_EXPR",
-        "EXPR_MINUS_EXPR",
-        "EXPR_PLUS_EXPR",
-        "EXPR_DIV_EXPR",
-        "EXPR_MULT_EXPR",
-        "LPAR_EXPR_LPAR",
-        "SINGLE_ID_AS_EXPR",
-        "FUNC_CALL_AS_EXPR",
-        "TUPLE_REF_AS_EXPR",
-        "ARRAY_REF_AS_EXPR",
-        "SINGLE_ID_AS_LHSITEM",
-        "TUPLE_REF_AS_LHSITEM",
-        "ARRAY_REF_AS_LHSITEM"
-    };
+        "ID",                       //1024
+        "INT",                      //1025
+        "PLACEHOLDER",              //1026
+        "EXPR_COMMA_EXPR",          //1027
+        "EXPR_MINUS_EXPR",          //1028
+        "EXPR_PLUS_EXPR",           //1029
+        "EXPR_DIV_EXPR",            //1030
+        "EXPR_MULT_EXPR",           //1031
+        "LPAR_EXPR_LPAR",           //1032
+        "SINGLE_ID_AS_EXPR",        //1033
+        "FUNC_CALL_AS_EXPR",        //1034
+        "TUPLE_REF_AS_EXPR",        //1035
+        "ARRAY_REF_AS_EXPR",        //1036
+        "SINGLE_ID_AS_LHSITEM",     //1037
+        "TUPLE_REF_AS_LHSITEM",     //1038
+        "ARRAY_REF_AS_LHSITEM",     //1039
+        "LHS",                      //1040
+        "COMMA_LHSITEN_LIST",       //1041
+    };  
 
     switch(p->pnodetype) {
         case NODETYPE_ID: {
@@ -164,10 +166,12 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_ARRAY_REF_AS_EXPR:
         case NODETYPE_SINGLE_ID_AS_LHSITEM:
         case NODETYPE_TUPLE_REF_AS_LHSITEM:
-        case NODETYPE_ARRAY_REF_AS_LHSITEM:{
+        case NODETYPE_ARRAY_REF_AS_LHSITEM:
+        case NODETYPE_LHS:
+        case NODETYPE_COMMA_LHSITEN_LIST:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
-            printf("[%s]\n", nodestr);
+            printf("[%s-%d]\n", nodestr, p->pnodetype);
             for (int i = 0; i < PARSE_TREE_MAX_CHILD; i++){
                 struct pNode *child = p->childs[i];
                 if (child == NULL) break;
