@@ -153,6 +153,9 @@ void visualize(struct pNode *p, int level){
         "ELSIF_SENTENCE_LIST",                      //1050
         "IF_STATEMENT",                             //1051
         "IF_ELSE_STATEMENT",                        //1052
+        "FOREACH_RANGE",                            //1053
+        "ARRAY_ID",                                 //1054
+        "FOREACH_ARRAYID",                          //1055
     };  
 
     switch(p->pnodetype) {
@@ -199,7 +202,10 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_ELSE_SENTENCE:
         case NODETYPE_ELSIF_SENTENCE_LIST:
         case NODETYPE_IF_STATEMENT:
-        case NODETYPE_IF_ELSE_STATEMENT:{
+        case NODETYPE_IF_ELSE_STATEMENT:
+        case NODETYPE_FOREACH_RANGE:
+        case NODETYPE_ARRAY_ID:
+        case NODETYPE_FOREACH_ARRAYID:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s-%d]\n", nodestr, p->pnodetype);

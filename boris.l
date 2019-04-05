@@ -31,6 +31,7 @@ then {  return KW_THEN;}
 elsif {  return KW_ELSIF;}
 else {  return KW_ELSE;}
 foreach { return KW_FOREACH;}
+for { return KW_FOR;}
 in {  return KW_IN;}
 return { return RETURN;}
 print {  return PRINT;}
