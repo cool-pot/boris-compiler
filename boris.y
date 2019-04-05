@@ -82,9 +82,9 @@
 %type<pnode> else_sentence
 %type<pnode> statement
 %type<pnode> array_id
-%type<pnode> range
+%type<pnode> range*/
 %type<pnode> bool_expr
-%type<pnode> bool_op*/
+%type<pnode> bool_op
 %type<pnode> lhs
 %type<pnode> comma_lhsitem_list
 %type<pnode> lhsitem
@@ -105,7 +105,18 @@
 %nonassoc EXPR_TUPLE_ID;
 %nonassoc EXPR_ARRAY_ID;
 
-input: lhs { printf("\n> Start visualization:\n"); visualize($1, 0);}
+input: bool_expr { printf("\n> Start visualization\n"); visualize($1, 0);}
+;
+
+bool_expr: expr bool_op expr { $$ = newpNode(NODETYPE_BOOLEXPR, 3, $1, $2, $3); }
+;
+
+bool_op: OP_LESS { $$ = newplaceholderNode(OP_LESS); }
+        | OP_GREATER { $$ = newplaceholderNode(OP_GREATER); }
+        | OP_EQUAL { $$ = newplaceholderNode(OP_EQUAL); }
+        | OP_NOTEQUA { $$ = newplaceholderNode(OP_NOTEQUA); }
+        | OP_LESSEQUAL { $$ = newplaceholderNode(OP_LESSEQUAL); }
+        | OP_GREATEREQUAL { $$ = newplaceholderNode(OP_GREATEREQUAL); }
 ;
 
 lhs: lhsitem comma_lhsitem_list { $$ = newpNode(NODETYPE_LHS, 2, $1, $2); }
