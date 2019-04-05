@@ -158,6 +158,7 @@ void visualize(struct pNode *p, int level){
         "FOREACH_ARRAYID_STATEMENT",                //1055
         "PRINT_STATEMENT",                          //1056
         "RETURN_STATEMENT",                         //1057
+        "SINGLE_INT_AS_EXPR",                       //1058
     };  
 
     switch(p->pnodetype) {
@@ -209,7 +210,8 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_ARRAY_ID:
         case NODETYPE_FOREACH_ARRAYID_STATEMENT:
         case NODETYPE_PRINT_STATEMENT:
-        case NODETYPE_RETURN_STATEMENT:{
+        case NODETYPE_RETURN_STATEMENT:
+        case NODETYPE_SINGLE_INT_AS_EXPR:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s-%d]\n", nodestr, p->pnodetype);
