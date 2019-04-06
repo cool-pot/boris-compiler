@@ -66,10 +66,9 @@
 %token UNKNOWN
 
 /* define the values to be used in non-terminals*/
-
-/*
+%type<pnode> input
 %type<pnode> sdd_list
-%type<pnode> sdd*/
+%type<pnode> sdd
 %type<pnode> defn
 %type<pnode> comma_id_list
 %type<pnode> body
@@ -106,8 +105,16 @@
 %nonassoc EXPR_ARRAY_ID;
 %nonassoc EXPR_INT;
 
-input: body { printf("\n> Start visualization\n"); visualize($1, 0);}
-    | defn { printf("\n> Start visualization\n"); visualize($1, 0);}
+input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); printf("\n> Start visualization\n"); visualize($$, 0);}
+;
+
+sdd_list: /* empty */ { $$ = NULL; } 
+    | sdd sdd_list {$$ = newpNode(NODETYPE_SDD_LIST, 2, $1, $2); }
+;
+
+sdd: statement {$$ = newpNode(NODETYPE_STATEMENT_AS_SDD, 1, $1); }
+    | decl {$$ = newpNode(NODETYPE_DECL_AS_SDD, 1, $1); }
+    | defn {$$ = newpNode(NODETYPE_DEFN_AS_SDD, 1, $1); }
 ;
 
 defn: KW_DEFUN ID OP_LPAR ID comma_id_list OP_RPAR body KW_END KW_DEFUN { $$ = newpNode(NODETYPE_FUNC_DEFN, 9, newplaceholderNode(KW_DEFUN), newsNode($2), newplaceholderNode(OP_LPAR), newsNode($4), $5, newplaceholderNode(OP_LPAR), $7, newplaceholderNode(KW_END), newplaceholderNode(KW_DEFUN));}
