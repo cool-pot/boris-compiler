@@ -59,7 +59,6 @@
 #define NODETYPE_SINGLE_INT_AS_EXPR 1058
 #define NODETYPE_LOCAL_DECL 1059
 #define NODETYPE_GLOBAL_DECL 1060
-#define NODETYPE_TUPLE_DECL 1061
 
 /* Nodes in the Parse Tree */
 struct pNode {
