@@ -1,3 +1,11 @@
+/*
+* Functions for the boris compiler
+*
+* Author: Yi Zhou
+* March 31, 2019
+*
+*/
+
 # include <stdio.h>
 # include <stdlib.h>
 # include <stdarg.h>
