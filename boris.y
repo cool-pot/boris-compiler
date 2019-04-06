@@ -163,7 +163,7 @@ statement: lhs OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_LHS_ASSIGN_EXPR_A
         | KW_FOREACH ID KW_IN range KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_RANGE_STATEMENT, 8, newplaceholderNode(KW_FOREACH), newsNode($2), newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
         | KW_FOREACH ID KW_IN array_id KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_ARRAYID_STATEMENT, 8, newplaceholderNode(KW_FOREACH), newsNode($2), newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
         | KW_RETURN expr OP_SEMI { $$ = newpNode(NODETYPE_RETURN_STATEMENT, 3, newplaceholderNode(KW_RETURN), $2, newplaceholderNode(OP_SEMI));}
-	    | KW_PRINT expr OP_SEMI { $$ = newpNode(NODETYPE_PRINT_STATEMENT, 3, newplaceholderNode(KW_PRINT), $2, newplaceholderNode(OP_SEMI));}
+        | KW_PRINT expr OP_SEMI { $$ = newpNode(NODETYPE_PRINT_STATEMENT, 3, newplaceholderNode(KW_PRINT), $2, newplaceholderNode(OP_SEMI));}
 ;
 
 array_id: ID { $$ = newpNode(NODETYPE_ARRAY_ID, 1, newsNode($1));} 
