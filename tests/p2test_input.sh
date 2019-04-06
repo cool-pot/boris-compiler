@@ -29,3 +29,17 @@ defun myFun(a,b)
 end defun
 
 print myFun (c,d);"| ./boris_parser
+
+#[TEST CASE 2]
+echo "----------------------------------------------------------------"
+echo "
+global a = 1;
+if a < 2 
+    then print a;
+end if"
+
+echo "
+global a = 1;
+if a < 2 
+    then print a;
+end if" | ./boris_parser
