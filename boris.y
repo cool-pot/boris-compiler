@@ -113,6 +113,8 @@ input: statement { printf("\n> Start visualization\n"); visualize($1, 0);}
 
 decl: KW_LOCAL ID OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_LOCAL_DECL, 5, newplaceholderNode(KW_LOCAL), newsNode($2), newplaceholderNode(OP_ASSIGN), $4, newplaceholderNode(OP_SEMI));}
     | KW_GLOBAL ID OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_GLOBAL_DECL, 5, newplaceholderNode(KW_GLOBAL), newsNode($2), newplaceholderNode(OP_ASSIGN), $4, newplaceholderNode(OP_SEMI));}
+    | KW_ARRAY ID OP_LBRAK expr OP_DOTDOT expr OP_RBRAK OP_SEMI { $$ = newpNode(NODETYPE_ARRAY_DECL, 8, newplaceholderNode(KW_ARRAY), newsNode($2), newplaceholderNode(OP_LBRAK), $4, newplaceholderNode(OP_DOTDOT), $6, newplaceholderNode(OP_RBRAK), newplaceholderNode(OP_SEMI));}
+    | KW_ARRAY ID OP_LBRAK expr OP_DOTDOT expr OP_RBRAK ID OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC, 11, newplaceholderNode(KW_ARRAY), newsNode($2), newplaceholderNode(OP_LBRAK), $4, newplaceholderNode(OP_DOTDOT), $6, newplaceholderNode(OP_RBRAK), newsNode($8), newplaceholderNode(OP_ASSIGN), $10, newplaceholderNode(OP_SEMI));}
 ;
 
 elsif_sentence: KW_ELSIF bool_expr KW_THEN statement_list { $$ = newpNode(NODETYPE_ELSIF_SENTENCE, 4, newplaceholderNode(KW_ELSIF), $2, newplaceholderNode(KW_THEN), $4);}
