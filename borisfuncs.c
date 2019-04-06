@@ -82,7 +82,6 @@ struct pNode *newsNode(char* sval){
     parent->pnodetype = NODETYPE_ID;
     parent->childscount = 0;
     parent->sval = sval; 
-    printf("[Succesfully] build a sNode[%d]: %s\n", parent->pnodetype, parent->sval); //TODO, DEBUG
     return (struct pNode *)parent;
 }
 
@@ -95,7 +94,6 @@ struct pNode *newiNode(int ival){
     parent->pnodetype = NODETYPE_INT;
     parent->childscount = 0;
     parent->ival = ival; 
-    printf("[Succesfully] build a iNode[%d]: %d\n", parent->pnodetype, parent->ival); //TODO, DEBUG
     return (struct pNode *)parent;
 }
 
@@ -109,7 +107,6 @@ struct pNode *newplaceholderNode(int tok){
     parent->pnodetype = NODETYPE_PLACEHOLDER;
     parent->childscount = 0;
     parent->tok = tok; 
-    printf("[Succesfully] build a placeholderNode[%d]: %d\n", parent->pnodetype, parent->tok); //TODO, DEBUG
     return (struct pNode *)parent;
 }
 
@@ -244,7 +241,7 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_ROOT_INPUT:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
-            printf("[%s-%d]\n", nodestr, p->pnodetype);
+            printf("[%s]\n", nodestr);
             for (int i = 0; i < p->childscount; i++){
                 struct pNode *child = p->childs[i];
                 visualize(child, level+1);
