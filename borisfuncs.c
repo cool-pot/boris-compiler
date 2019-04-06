@@ -167,6 +167,8 @@ void visualize(struct pNode *p, int level){
         "DECL_AS_SD",                               //1064
         "SD_LIST",                                  //1065
         "BODY",                                     //1066
+        "COMMA_ID_LIST",                            //1067
+        "FUNC_DEFN",                                //1068
     };
 
     switch(p->pnodetype) {
@@ -227,7 +229,9 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_STATEMENT_AS_SD:
         case NODETYPE_DECL_AS_SD:
         case NODETYPE_SD_LIST:
-        case NODETYPE_BODY:{
+        case NODETYPE_BODY:
+        case NODETYPE_COMMA_ID_LIST:
+        case NODETYPE_FUNC_DEFN:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s-%d]\n", nodestr, p->pnodetype);

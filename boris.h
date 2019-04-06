@@ -65,6 +65,8 @@
 #define NODETYPE_DECL_AS_SD 1064
 #define NODETYPE_SD_LIST 1065
 #define NODETYPE_BODY 1066
+#define NODETYPE_COMMA_ID_LIST 1067
+#define NODETYPE_FUNC_DEFN 1068
 
 /* Nodes in the Parse Tree */
 struct pNode {

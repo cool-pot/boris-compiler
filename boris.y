@@ -69,10 +69,9 @@
 
 /*
 %type<pnode> sdd_list
-%type<pnode> sdd
-%type<pnode> comma_expr_list
+%type<pnode> sdd*/
+%type<pnode> defn
 %type<pnode> comma_id_list
-%type<pnode> defn*/
 %type<pnode> body
 %type<pnode> sd_list
 %type<pnode> sd
@@ -108,6 +107,14 @@
 %nonassoc EXPR_INT;
 
 input: body { printf("\n> Start visualization\n"); visualize($1, 0);}
+    | defn { printf("\n> Start visualization\n"); visualize($1, 0);}
+;
+
+defn: KW_DEFUN ID OP_LPAR ID comma_id_list OP_RPAR body KW_END KW_DEFUN { $$ = newpNode(NODETYPE_FUNC_DEFN, 9, newplaceholderNode(KW_DEFUN), newsNode($2), newplaceholderNode(OP_LPAR), newsNode($4), $5, newplaceholderNode(OP_LPAR), $7, newplaceholderNode(KW_END), newplaceholderNode(KW_DEFUN));}
+;
+
+comma_id_list: /* empty */ { $$ = NULL; } 
+    | OP_COMMA ID comma_id_list { $$ = newpNode(NODETYPE_COMMA_ID_LIST, 3, newplaceholderNode(OP_COMMA), newsNode($2), $3);} 
 ;
 
 body: sd_list { $$ = newpNode(NODETYPE_BODY, 1, $1);}
