@@ -72,10 +72,10 @@
 %type<pnode> sdd
 %type<pnode> comma_expr_list
 %type<pnode> comma_id_list
-%type<pnode> defn
+%type<pnode> defn*/
+%type<pnode> body
 %type<pnode> sd_list
 %type<pnode> sd
-%type<pnode> body*/
 %type<pnode> decl
 %type<pnode> array_id
 %type<pnode> elsif_sentence_list
@@ -107,8 +107,18 @@
 %nonassoc EXPR_ARRAY_ID;
 %nonassoc EXPR_INT;
 
-input: statement { printf("\n> Start visualization\n"); visualize($1, 0);}
-    | decl { printf("\n> Start visualization\n"); visualize($1, 0);}
+input: body { printf("\n> Start visualization\n"); visualize($1, 0);}
+;
+
+body: sd_list { $$ = newpNode(NODETYPE_BODY, 1, $1);}
+;
+
+sd_list: /* empty */ { $$ = NULL; } 
+    | sd sd_list {$$ = newpNode(NODETYPE_SD_LIST, 2, $1, $2); }
+;
+
+sd: statement {$$ = newpNode(NODETYPE_STATEMENT_AS_SD, 1, $1); }
+    | decl {$$ = newpNode(NODETYPE_DECL_AS_SD, 1, $1); }
 ;
 
 decl: KW_LOCAL ID OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_LOCAL_DECL, 5, newplaceholderNode(KW_LOCAL), newsNode($2), newplaceholderNode(OP_ASSIGN), $4, newplaceholderNode(OP_SEMI));}

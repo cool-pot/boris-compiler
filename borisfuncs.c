@@ -163,6 +163,10 @@ void visualize(struct pNode *p, int level){
         "GLOBAL_DECL",                              //1060
         "ARRAY_DECL",                               //1061
         "ARRAY_DECL_WITH_ANONY_FUNC",               //1062
+        "STATEMENT_AS_SD",                          //1063
+        "DECL_AS_SD",                               //1064
+        "SD_LIST",                                  //1065
+        "BODY",                                     //1066
     };
 
     switch(p->pnodetype) {
@@ -219,7 +223,11 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_LOCAL_DECL:
         case NODETYPE_GLOBAL_DECL:
         case NODETYPE_ARRAY_DECL:
-        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC:{
+        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC:
+        case NODETYPE_STATEMENT_AS_SD:
+        case NODETYPE_DECL_AS_SD:
+        case NODETYPE_SD_LIST:
+        case NODETYPE_BODY:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s-%d]\n", nodestr, p->pnodetype);
