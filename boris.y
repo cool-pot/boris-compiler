@@ -70,7 +70,6 @@
 /*
 %type<pnode> sdd_list
 %type<pnode> sdd
-%type<pnode> comma_expr_list
 %type<pnode> comma_id_list
 %type<pnode> defn
 %type<pnode> sd_list
@@ -113,6 +112,7 @@ input: statement { printf("\n> Start visualization\n"); visualize($1, 0);}
 
 decl: KW_LOCAL ID OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_LOCAL_DECL, 5, newplaceholderNode(KW_LOCAL), newsNode($2), newplaceholderNode(OP_ASSIGN), $4, newplaceholderNode(OP_SEMI));}
     | KW_GLOBAL ID OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_GLOBAL_DECL, 5, newplaceholderNode(KW_GLOBAL), newsNode($2), newplaceholderNode(OP_ASSIGN), $4, newplaceholderNode(OP_SEMI));}
+    | KW_TUPLE ID OP_ASSIGN expr OP_COMMA expr OP_SEMI { $$ = newpNode(NODETYPE_TUPLE_DECL, 7, newplaceholderNode(KW_TUPLE), newsNode($2), newplaceholderNode(OP_ASSIGN), $4, newplaceholderNode(OP_COMMA), $6, newplaceholderNode(OP_SEMI));}
 ;
 
 elsif_sentence: KW_ELSIF bool_expr KW_THEN statement_list { $$ = newpNode(NODETYPE_ELSIF_SENTENCE, 4, newplaceholderNode(KW_ELSIF), $2, newplaceholderNode(KW_THEN), $4);}
