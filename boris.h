@@ -108,6 +108,7 @@ extern int yylex(); /* from lexer */
 extern int yyparse(); /* from parser */
 void yyerror(char *s, ...);
 void visualize(struct pNode *p, int level);
+void treefree(struct pNode *p);
 
 
 /* build a Parse Tree*/

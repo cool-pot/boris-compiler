@@ -252,6 +252,74 @@ void visualize(struct pNode *p, int level){
     }
 }
 
+void treefree(struct pNode *p){
+    if (p == NULL) return;
+    switch(p->pnodetype) {
+        /* non-terminals */
+        case NODETYPE_EXPR_COMMA_EXPR:
+        case NODETYPE_EXPR_MINUS_EXPR:
+        case NODETYPE_EXPR_PLUS_EXPR:
+        case NODETYPE_EXPR_MULT_EXPR:
+        case NODETYPE_EXPR_DIV_EXPR:
+        case NODETYPE_LPAR_EXPR_RPAR:
+        case NODETYPE_FUNC_CALL_AS_EXPR:
+        case NODETYPE_SINGLE_ID_AS_EXPR:
+        case NODETYPE_TUPLE_REF_AS_EXPR:
+        case NODETYPE_ARRAY_REF_AS_EXPR:
+        case NODETYPE_SINGLE_ID_AS_LHSITEM:
+        case NODETYPE_TUPLE_REF_AS_LHSITEM:
+        case NODETYPE_ARRAY_REF_AS_LHSITEM:
+        case NODETYPE_LHS:
+        case NODETYPE_COMMA_LHSITEN_LIST:
+        case NODETYPE_BOOLEXPR:
+        case NODETYPE_RANGE:
+        case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT:
+        case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT:
+        case NODETYPE_STATEMENT_LIST:
+        case NODETYPE_WHILE_STATEMENT:
+        case NODETYPE_ELSIF_SENTENCE:
+        case NODETYPE_ELSE_SENTENCE:
+        case NODETYPE_ELSIF_SENTENCE_LIST:
+        case NODETYPE_IF_STATEMENT:
+        case NODETYPE_IF_ELSE_STATEMENT:
+        case NODETYPE_FOREACH_RANGE_STATEMENT:
+        case NODETYPE_ARRAY_ID:
+        case NODETYPE_FOREACH_ARRAYID_STATEMENT:
+        case NODETYPE_PRINT_STATEMENT:
+        case NODETYPE_RETURN_STATEMENT:
+        case NODETYPE_SINGLE_INT_AS_EXPR:
+        case NODETYPE_LOCAL_DECL:
+        case NODETYPE_GLOBAL_DECL:
+        case NODETYPE_ARRAY_DECL:
+        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC:
+        case NODETYPE_STATEMENT_AS_SD:
+        case NODETYPE_DECL_AS_SD:
+        case NODETYPE_SD_LIST:
+        case NODETYPE_BODY:
+        case NODETYPE_COMMA_ID_LIST:
+        case NODETYPE_FUNC_DEFN:
+        case NODETYPE_STATEMENT_AS_SDD:
+        case NODETYPE_DECL_AS_SDD:
+        case NODETYPE_DEFN_AS_SDD:
+        case NODETYPE_SDD_LIST:
+        case NODETYPE_ROOT_INPUT:{
+            for (int i = 0; i < p->childscount; i++){
+                treefree(p->childs[i]);
+            }
+            free(p);
+            break;
+        }
+        /* terminals */
+        case NODETYPE_ID:
+        case NODETYPE_INT:
+        case NODETYPE_PLACEHOLDER:{
+            free(p);
+            break;
+        }
+        default: printf("internal error: free bad node %d\n", p->pnodetype);
+    }
+}
+
 int main(){
     return yyparse();
 }
