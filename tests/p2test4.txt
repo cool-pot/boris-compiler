@@ -2,7 +2,7 @@
 
 defun fib(x)
   if x<0
-    then print 9999; return -1;
+    then print 9999; return 0-1;
   elsif x==0 then
     return 0;
   elsif x==1 then
@@ -11,7 +11,7 @@ defun fib(x)
     *** do we need a declaration for these? wait until next project stage!
     a,b=0,1;
     count = 1;
-    while (count <= x) do *** off by one error?
+    while count <= x do *** off by one error?
       a,b = b,a+b; *** make sure this is OK in the sematics of the language
     end while
     return a;
@@ -27,7 +27,7 @@ end for
 *** now recursively
 defun fib_two (x)
   if x<0
-    then print 9999; return -1;
+    then print 9999; return 0-1;
   elsif x==0 then
     return 0;
   elsif x==1 then
