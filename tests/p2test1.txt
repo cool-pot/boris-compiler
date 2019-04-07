@@ -1,0 +1,26 @@
+*** For really simple tests, you can just take one or two statements from below and put them into a separate file.
+
+*** Calculator only, no variables
+print 1
+print 1+2
+print 1+2*3
+print (1+2)*3
+print (1+2)*3/4
+print (1+2)*(3/4)
+
+*** simple IF
+if 0>1 then print 0; else print 1; end if
+
+*** simple IF without ELSE
+if 0>1 then print 0; end if
+
+*** more complicated IF
+if 111>222/3 then
+  print 1;
+elsif 111==222/3 then
+  print 2;
+elseif 111==222/2 then
+  print 3;
+else
+  print 9999;
+end if

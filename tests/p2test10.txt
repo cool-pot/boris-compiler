@@ -1,0 +1,53 @@
+*** Started with p1-test3.txt file
+*** Fixed a bunch of syntax errors, such a LOTS of missing semicolons.
+
+*** Calculator only
+print 123*231+(123/45);
+*** some variables and calculator
+global a=10;
+print a*a;
+*** a function
+defun square (x) return x*x; end defun
+global b=12;
+print square(a)+square(b);
+*** actually, the following is also legal
+print square a + square b;
+
+
+*** bubblesort? ***
+array arr[1..10];
+arr[1]=23;
+arr[2]=1;
+arr[3]=2;
+arr[4]=41;
+arr[5]=621;
+arr[6]=11;
+arr[7]=99;
+arr[8]=68;
+arr[9]=44;
+arr[10]=55;
+
+foreach i=1..9 do
+  foreach j=2..10 do
+     if arr[i]>arr[j] then
+        arr[i] <-> arr[j];
+     end if
+  end for
+end for
+
+foreach i=1..10 to
+   print arr[i];
+end for   
+
+*** now weird stuff... tuples
+*** note there's no "tuple" declaration any more
+
+t=0,1,3;
+tt=3,2,1;
+ttt=0,0,0,0,0,0;
+
+ttt = t,tt *** now ttt contains 0,1,3,3,2,1
+
+tt=t; *** now tt contains 0,1,3
+
+a[1],a[2]=a[2],a[1]; *** exchanged; same as a[1]<->a[2]

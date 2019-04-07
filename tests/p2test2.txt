@@ -1,0 +1,11 @@
+*** simple calc with variables
+global a=0;
+global b=1;
+a=(234*b-459*a)/2;
+b=2;
+print a;
+print b;
+a=(234*b-459*a)/2;
+a<->b;
+print a;
+print b;
