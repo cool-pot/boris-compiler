@@ -104,13 +104,24 @@ The input will be parsed into a parse tree, and it can be visualized into the `s
         [EMPTY_NODE]
 ~~~
 
+
+### Comments on the previous parse tree
+
+According to the grammar. Input is a list of (statement|decl|defun). So the `ROOT_INPUT` node will be have a `SDD_LIST` as child. Then we only get one statement here, which is a `PRINT_STATEMENT` node. 
+
+Inside `PRINT_STATEMENT` node, The `PLACEHOLDER` [274] is representing a keyword 'print', and `PLACEHOLDER` 290 is represnting a operator ';'.
+
+The last `EMPTY_NODE` in last line is a node to note the end of `SDD_LIST`.
+
+### General rules of the nodes in a parse tree
+
 Here every `nonterminal` in the grammar will be constructed as a internal node in the parse tree and every `terminal` is a leaf node in parse tree.
 
 The only four `terminal`s are:
 
-- `NODETYPE_ID`: this node is designed for `ID` tokens and it will contain a char* value.
-- `NODETYPE_INT`: this node is designed for `INT_LIT` tokens and it will contain a int value.
-- `NODETYPE_PALCEHOLDERNODE`: this node is designed for the `keyword` and `operator`. It will contain the token number as identifier.
-- `NODETYPE_EMPTY_NODE`: this is a `NULL` node.
+- `ID`: this node is designed for `ID` tokens and it will contain a char* value.
+- `INT`: this node is designed for `INT_LIT` tokens and it will contain a int value.
+- `PALCEHOLDERNODE`: this node is designed for the `keyword` and `operator`. It will contain the token number as identifier.
+- `EMPTY_NODE`: this is a `NULL` node.
 
 All the `NODETYPE`s are defined in `boris.h`.
