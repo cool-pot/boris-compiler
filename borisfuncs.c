@@ -18,8 +18,8 @@ void yyerror(char *s, ...){
     va_list ap;
     va_start(ap, s);
     fprintf(stderr, RED);
+    fprintf(stderr, "position %d,%d-%d,%d: ",yylloc.first_line,yylloc.first_column, yylloc.last_line, yylloc.last_column);
     vfprintf(stderr, s, ap);
-    fprintf(stderr, " In position %d,%d-%d,%d.",yylloc.first_line,yylloc.first_column, yylloc.last_line, yylloc.last_column);
     fprintf(stderr, RESET);
     fprintf(stderr, "\n");
 }
