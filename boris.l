@@ -59,7 +59,7 @@ print {  return KW_PRINT;}
     if(yyleng > MAX_ID_LENGTH){ 
         yyerror("[Lexer Error]ID length is too long. Will be truncted."); 
     } 
-    yylval.sval = strndup(yytext, MAX_ID_LENGTH); //TODO, NEED FREE IN THE FUTURE
+    yylval.sval = strndup(yytext, MAX_ID_LENGTH); 
     return ID;}
 [0-9]+ { 
     long int val = atol(yytext);

@@ -115,6 +115,161 @@ struct pNode *newplaceholderNode(int tok){
     parent->pnodetype = NODETYPE_PLACEHOLDER;
     parent->childscount = 0;
     parent->tok = tok; 
+    switch (tok)
+    {
+        case KW_ARRAY:{
+            strcpy(parent->tokstr, "array");
+            break;
+        }
+        case KW_DEFUN:{
+            strcpy(parent->tokstr, "defun");
+            break;
+        }
+        case KW_DO:{
+            strcpy(parent->tokstr, "do");
+            break;
+        }
+        case KW_ELSE:{
+            strcpy(parent->tokstr, "else");
+            break;
+        }
+        case KW_ELSIF:{
+            strcpy(parent->tokstr, "elsif");
+            break;
+        }
+        case KW_END:{
+            strcpy(parent->tokstr, "end");
+            break;
+        }
+        case KW_FOR:{
+            strcpy(parent->tokstr, "for");
+            break;
+        }
+        case KW_FOREACH:{
+            strcpy(parent->tokstr, "foreach");
+            break;
+        }
+        case KW_GLOBAL:{
+            strcpy(parent->tokstr, "global");
+            break;
+        }
+        case KW_IF:{
+            strcpy(parent->tokstr, "if");
+            break;
+        }
+        case KW_IN:{
+            strcpy(parent->tokstr, "in");
+            break;
+        }
+        case KW_LOCAL:{
+            strcpy(parent->tokstr, "local");
+            break;
+        }
+        case KW_PRINT:{
+            strcpy(parent->tokstr, "print");
+            break;
+        }
+        case KW_RETURN:{
+            strcpy(parent->tokstr, "return");
+            break;
+        }
+        case KW_THEN:{
+            strcpy(parent->tokstr, "then");
+            break;
+        }
+        case KW_TUPLE:{
+            strcpy(parent->tokstr, "tuple");
+            break;
+        }
+        case KW_WHILE:{
+            strcpy(parent->tokstr, "while");
+            break;
+        }
+        case OP_ASSIGN:{
+            strcpy(parent->tokstr, "=");
+            break;
+        }
+        case OP_COMMA:{
+            strcpy(parent->tokstr, ",");
+            break;
+        }
+        case OP_DIV:{
+            strcpy(parent->tokstr, "/");
+            break;
+        }
+        case OP_DOT:{
+            strcpy(parent->tokstr, ".");
+            break;
+        }
+        case OP_DOTDOT:{
+            strcpy(parent->tokstr, "..");
+            break;
+        }
+        case OP_EQUAL:{
+            strcpy(parent->tokstr, "==");
+            break;
+        }
+        case OP_EXCHANGE:{
+            strcpy(parent->tokstr, "<->");
+            break;
+        }
+        case OP_GREATER:{
+            strcpy(parent->tokstr, ">");
+            break;
+        }
+        case OP_GREATEREQUAL:{
+            strcpy(parent->tokstr, ">=");
+            break;
+        }
+        case OP_LBRAK:{
+            strcpy(parent->tokstr, "[");
+            break;
+        }
+        case OP_LESS:{
+            strcpy(parent->tokstr, "<");
+            break;
+        }
+        case OP_LESSEQUAL:{
+            strcpy(parent->tokstr, "<=");
+            break;
+        }
+        case OP_LPAR:{
+            strcpy(parent->tokstr, "(");
+            break;
+        }
+        case OP_MINUS:{
+            strcpy(parent->tokstr, "-");
+            break;
+        }
+        case OP_MULT:{
+            strcpy(parent->tokstr, "*");
+            break;
+        }
+        case OP_NOTEQUA:{
+            strcpy(parent->tokstr, "!=");
+            break;
+        }
+        case OP_PLUS:{
+            strcpy(parent->tokstr, "+");
+            break;
+        }
+        case OP_RBRAK:{
+            strcpy(parent->tokstr, "]");
+            break;
+        }
+        case OP_RPAR:{
+            strcpy(parent->tokstr, ")");
+            break;
+        }
+        case OP_SEMI:{
+            strcpy(parent->tokstr, ";");
+            break;
+        }
+        default:{
+            strcpy(parent->tokstr, "unknown");
+            break;
+        }
+    }
     return (struct pNode *)parent;
 }
 
@@ -123,6 +278,7 @@ void printManySpace(int count){
 }
 
 void visualize(struct pNode *p, int level){
+    if (level == 0) printf("Start parse tree visualization:\n\n"); 
     if (p == NULL) {
         printManySpace(level*4);
         printf("[EMPTY_NODE]\n"); 
@@ -197,7 +353,7 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_PLACEHOLDER: {
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
-            printf("[%s]%d\n", nodestr, ((struct placeholderNode*)p)->tok);
+            printf("[%s-%d]%s\n", nodestr, ((struct placeholderNode*)p)->tok, ((struct placeholderNode*)p)->tokstr);
             break;
         }
         case NODETYPE_EXPR_COMMA_EXPR:
@@ -318,9 +474,13 @@ void treefree(struct pNode *p){
             break;
         }
         /* terminals */
-        case NODETYPE_ID:
         case NODETYPE_INT:
         case NODETYPE_PLACEHOLDER:{
+            free(p);
+            break;
+        }
+        case NODETYPE_ID:{
+            free(((struct sNode*)p)->sval);
             free(p);
             break;
         }

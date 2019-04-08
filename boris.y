@@ -105,7 +105,7 @@
 %nonassoc EXPR_ARRAY_ID;
 %nonassoc EXPR_INT;
 
-input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); printf("\n> Start parse tree visualization\n"); visualize($$, 0); treefree($$);}
+input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); visualize($$, 0); treefree($$);}
 ;
 
 sdd_list: /* empty */ { $$ = NULL; } 

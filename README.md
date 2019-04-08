@@ -92,14 +92,16 @@ The input will be parsed into a parse tree, and it can be visualized into the `s
 ~~~ bash
 >> cat tests/p2test0.txt| ./boris_parser 
 
+Start parse tree visualization:
+
 [ROOT_INPUT]
     [SDD_LIST]
         [STATEMENT_AS_SDD]
             [PRINT_STATEMENT]
-                [PLACEHOLDER]274
+                [PLACEHOLDER-274]print
                 [SINGLE_INT_AS_EXPR]
                     [INT]131313
-                [PLACEHOLDER]290
+                [PLACEHOLDER-290];
         [EMPTY_NODE]
 ~~~
 

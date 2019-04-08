@@ -99,6 +99,7 @@ struct placeholderNode {
   int pnodetype; // = NODETYPE_PLACEHOLDEER
   int childscount; // = 0
   int tok;
+  char tokstr[20]; 
 };
 
 /* interface to the lexer */
