@@ -110,7 +110,7 @@ Start parse tree visualization:
 
 According to the grammar. Input is a list of (statement|decl|defun). So the `ROOT_INPUT` node will be have a `SDD_LIST` as child. Then we only get one statement here, which is a `PRINT_STATEMENT` node. 
 
-Inside `PRINT_STATEMENT` node, The `PLACEHOLDER` [274] is representing a keyword 'print', and `PLACEHOLDER` 290 is represnting a operator ';'.
+Inside `PRINT_STATEMENT` node, The `PLACEHOLDER` [274] is representing a keyword 'print', and `PLACEHOLDER` [290] is represnting a operator ';'.
 
 The last `EMPTY_NODE` in last line is a node to note the end of `SDD_LIST`.
 

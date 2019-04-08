@@ -32,9 +32,9 @@ void lexerTester(){
         if(tok == 0) break;
         printf("token[%d].", tok);
         if (tok == END_OF_LINE) {
-                printf("[\\n]");\
-            } else{ 
-                printf("[%s]", yytext); 
+            printf("[\\n]");
+        } else{ 
+            printf("[%s]", yytext); 
         }
         printf(" In position %d,%d-%d,%d.",yylloc.first_line,yylloc.first_column, yylloc.last_line, yylloc.last_column);
         if (tok == ID) {
@@ -117,158 +117,44 @@ struct pNode *newplaceholderNode(int tok){
     parent->tok = tok; 
     switch (tok)
     {
-        case KW_ARRAY:{
-            strcpy(parent->tokstr, "array");
-            break;
-        }
-        case KW_DEFUN:{
-            strcpy(parent->tokstr, "defun");
-            break;
-        }
-        case KW_DO:{
-            strcpy(parent->tokstr, "do");
-            break;
-        }
-        case KW_ELSE:{
-            strcpy(parent->tokstr, "else");
-            break;
-        }
-        case KW_ELSIF:{
-            strcpy(parent->tokstr, "elsif");
-            break;
-        }
-        case KW_END:{
-            strcpy(parent->tokstr, "end");
-            break;
-        }
-        case KW_FOR:{
-            strcpy(parent->tokstr, "for");
-            break;
-        }
-        case KW_FOREACH:{
-            strcpy(parent->tokstr, "foreach");
-            break;
-        }
-        case KW_GLOBAL:{
-            strcpy(parent->tokstr, "global");
-            break;
-        }
-        case KW_IF:{
-            strcpy(parent->tokstr, "if");
-            break;
-        }
-        case KW_IN:{
-            strcpy(parent->tokstr, "in");
-            break;
-        }
-        case KW_LOCAL:{
-            strcpy(parent->tokstr, "local");
-            break;
-        }
-        case KW_PRINT:{
-            strcpy(parent->tokstr, "print");
-            break;
-        }
-        case KW_RETURN:{
-            strcpy(parent->tokstr, "return");
-            break;
-        }
-        case KW_THEN:{
-            strcpy(parent->tokstr, "then");
-            break;
-        }
-        case KW_TUPLE:{
-            strcpy(parent->tokstr, "tuple");
-            break;
-        }
-        case KW_WHILE:{
-            strcpy(parent->tokstr, "while");
-            break;
-        }
-        case OP_ASSIGN:{
-            strcpy(parent->tokstr, "=");
-            break;
-        }
-        case OP_COMMA:{
-            strcpy(parent->tokstr, ",");
-            break;
-        }
-        case OP_DIV:{
-            strcpy(parent->tokstr, "/");
-            break;
-        }
-        case OP_DOT:{
-            strcpy(parent->tokstr, ".");
-            break;
-        }
-        case OP_DOTDOT:{
-            strcpy(parent->tokstr, "..");
-            break;
-        }
-        case OP_EQUAL:{
-            strcpy(parent->tokstr, "==");
-            break;
-        }
-        case OP_EXCHANGE:{
-            strcpy(parent->tokstr, "<->");
-            break;
-        }
-        case OP_GREATER:{
-            strcpy(parent->tokstr, ">");
-            break;
-        }
-        case OP_GREATEREQUAL:{
-            strcpy(parent->tokstr, ">=");
-            break;
-        }
-        case OP_LBRAK:{
-            strcpy(parent->tokstr, "[");
-            break;
-        }
-        case OP_LESS:{
-            strcpy(parent->tokstr, "<");
-            break;
-        }
-        case OP_LESSEQUAL:{
-            strcpy(parent->tokstr, "<=");
-            break;
-        }
-        case OP_LPAR:{
-            strcpy(parent->tokstr, "(");
-            break;
-        }
-        case OP_MINUS:{
-            strcpy(parent->tokstr, "-");
-            break;
-        }
-        case OP_MULT:{
-            strcpy(parent->tokstr, "*");
-            break;
-        }
-        case OP_NOTEQUA:{
-            strcpy(parent->tokstr, "!=");
-            break;
-        }
-        case OP_PLUS:{
-            strcpy(parent->tokstr, "+");
-            break;
-        }
-        case OP_RBRAK:{
-            strcpy(parent->tokstr, "]");
-            break;
-        }
-        case OP_RPAR:{
-            strcpy(parent->tokstr, ")");
-            break;
-        }
-        case OP_SEMI:{
-            strcpy(parent->tokstr, ";");
-            break;
-        }
-        default:{
-            strcpy(parent->tokstr, "unknown");
-            break;
-        }
+        case KW_ARRAY:{ strcpy(parent->tokstr, "array"); break; }
+        case KW_DEFUN:{ strcpy(parent->tokstr, "defun"); break; }
+        case KW_DO:{ strcpy(parent->tokstr, "do"); break; }
+        case KW_ELSE:{ strcpy(parent->tokstr, "else"); break; }
+        case KW_ELSIF:{ strcpy(parent->tokstr, "elsif"); break; }
+        case KW_END:{ strcpy(parent->tokstr, "end"); break; }
+        case KW_FOR:{ strcpy(parent->tokstr, "for"); break; }
+        case KW_FOREACH:{ strcpy(parent->tokstr, "foreach"); break; }
+        case KW_GLOBAL:{ strcpy(parent->tokstr, "global"); break; }
+        case KW_IF:{ strcpy(parent->tokstr, "if"); break; }
+        case KW_IN:{ strcpy(parent->tokstr, "in"); break; }
+        case KW_LOCAL:{ strcpy(parent->tokstr, "local"); break; }
+        case KW_PRINT:{ strcpy(parent->tokstr, "print"); break; }
+        case KW_RETURN:{ strcpy(parent->tokstr, "return"); break; }
+        case KW_THEN:{ strcpy(parent->tokstr, "then"); break; }
+        case KW_TUPLE:{ strcpy(parent->tokstr, "tuple"); break; }
+        case KW_WHILE:{ strcpy(parent->tokstr, "while"); break; }
+        case OP_ASSIGN:{ strcpy(parent->tokstr, "="); break; }
+        case OP_COMMA:{ strcpy(parent->tokstr, ","); break; }
+        case OP_DIV:{ strcpy(parent->tokstr, "/"); break; }
+        case OP_DOT:{ strcpy(parent->tokstr, "."); break; }
+        case OP_DOTDOT:{ strcpy(parent->tokstr, ".."); break; }
+        case OP_EQUAL:{ strcpy(parent->tokstr, "=="); break; }
+        case OP_EXCHANGE:{ strcpy(parent->tokstr, "<->"); break; }
+        case OP_GREATER:{ strcpy(parent->tokstr, ">"); break; }
+        case OP_GREATEREQUAL:{ strcpy(parent->tokstr, ">="); break; }
+        case OP_LBRAK:{ strcpy(parent->tokstr, "["); break; }
+        case OP_LESS:{ strcpy(parent->tokstr, "<"); break; }
+        case OP_LESSEQUAL:{ strcpy(parent->tokstr, "<="); break; }
+        case OP_LPAR:{ strcpy(parent->tokstr, "("); break; }
+        case OP_MINUS:{ strcpy(parent->tokstr, "-"); break; }
+        case OP_MULT:{ strcpy(parent->tokstr, "*"); break; }
+        case OP_NOTEQUA:{ strcpy(parent->tokstr, "!="); break; }
+        case OP_PLUS:{ strcpy(parent->tokstr, "+"); break; }
+        case OP_RBRAK:{ strcpy(parent->tokstr, "]"); break; }
+        case OP_RPAR:{ strcpy(parent->tokstr, ")"); break; }
+        case OP_SEMI:{ strcpy(parent->tokstr, ";"); break; }
+        default:{ strcpy(parent->tokstr, "unknown"); break; }
     }
     return (struct pNode *)parent;
 }
