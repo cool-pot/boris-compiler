@@ -72,6 +72,7 @@
 #define NODETYPE_DEFN_AS_SDD 1071
 #define NODETYPE_SDD_LIST 1072
 #define NODETYPE_ROOT_INPUT 1073
+#define NODETYPE_NEG_INT_AS_EXPR 1074
 
 /* Nodes in the Parse Tree */
 struct pNode {

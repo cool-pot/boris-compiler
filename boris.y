@@ -104,6 +104,7 @@
 %nonassoc EXPR_TUPLE_ID;
 %nonassoc EXPR_ARRAY_ID;
 %nonassoc EXPR_INT;
+%nonassoc EXPR_NEG_INT;
 
 input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); visualize($$, 0); treefree($$);}
 ;
@@ -206,6 +207,7 @@ expr: expr OP_COMMA expr { $$ = newpNode(NODETYPE_EXPR_COMMA_EXPR, 3, $1, newpla
     | ID OP_DOT INT_LIT { $$ = newpNode(NODETYPE_TUPLE_REF_AS_EXPR, 3, newsNode($1), newplaceholderNode(OP_DOT), newiNode($3)); } %prec EXPR_TUPLE_ID
     | ID OP_LBRAK expr OP_RBRAK { $$ = newpNode(NODETYPE_ARRAY_REF_AS_EXPR, 4, newsNode($1), newplaceholderNode(OP_LBRAK), $3, newplaceholderNode(OP_RBRAK)); } %prec EXPR_ARRAY_ID
     | INT_LIT { $$ = newpNode(NODETYPE_SINGLE_INT_AS_EXPR, 1, newiNode($1));} %prec EXPR_INT
+    | OP_MINUS INT_LIT { $$ = newpNode(NODETYPE_NEG_INT_AS_EXPR, 2, newplaceholderNode(OP_MINUS), newiNode($2));} %prec EXPR_NEG_INT
 ;
 
 %%
