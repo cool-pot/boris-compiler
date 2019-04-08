@@ -1,0 +1,36 @@
+*** This is a sample file that should work OK with the PARSER.
+*** but should cause terrible trouble once symbol table and type and scope checking are incorporated.
+
+*** In short, this is a test input for project2/parser ONLY
+
+array a [234..123] a = a*a*a - 2*a + 4;
+global a=1;
+local a=a;
+
+a = a.0, a.0, 0;
+
+foreach a in a do
+  print a, a[a+1], a[a.7+49+a[a.3+5]];
+end for
+
+if a[0] < a.0 / a + 5 then
+  print 999;
+else
+  print 777;
+end if
+
+defun a (a,aa,aaa,a) 
+  local a=aa;
+  global aaa=aa;
+
+  if a[aa[aaa]]==aaa[a.7] then
+     return aaa[a.5];
+  else
+     a[a[7]] <-> a.3;
+     return a[a[a.3]];
+  end if
+end defun
+
+while a != a.7 do
+  a <-> a,a;
+end while

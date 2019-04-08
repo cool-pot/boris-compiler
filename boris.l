@@ -76,6 +76,6 @@ print {  return KW_PRINT;}
 \*\*\*.* { /* return COMMENT; */}
 \n {  /* return END_OF_LINE; */}
 [ \t] {  /* return WS; */}
-. { yyerror("[Lexer Error]Mystery character %c", *yytext); /* return UNKNOWN; */} 
+. { yyerror("[Lexer Error]Mystery character %c, ignored.", *yytext); /* return UNKNOWN; */} 
 
 %%
