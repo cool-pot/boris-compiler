@@ -1,0 +1,16 @@
+> Hello from scannerTester for boris compiler!
+token[295].[1] In position 2,1-2,1.[32m[INT_LIT] Retained infomation: yylval.ival=1[0m
+token[295].[0] In position 3,1-3,1.[32m[INT_LIT] Retained infomation: yylval.ival=0[0m
+token[295].[00] In position 4,1-4,2.[32m[INT_LIT] Retained infomation: yylval.ival=0[0m
+token[295].[001] In position 5,1-5,3.[32m[INT_LIT] Retained infomation: yylval.ival=1[0m
+token[295].[00000000000000001] In position 6,1-6,17.[32m[INT_LIT] Retained infomation: yylval.ival=1[0m
+token[295].[2147483646] In position 7,1-7,10.[32m[INT_LIT] Retained infomation: yylval.ival=2147483646[0m
+token[295].[2147483647] In position 8,1-8,10.[32m[INT_LIT] Retained infomation: yylval.ival=2147483647[0m
+token[295].[2147483648] In position 9,1-9,10.[32m[INT_LIT] Retained infomation: yylval.ival=-2147483648[0m
+token[285].[-] In position 10,1-10,1.
+token[295].[2147483647] In position 10,2-10,11.[32m[INT_LIT] Retained infomation: yylval.ival=2147483647[0m
+token[285].[-] In position 11,1-11,1.
+token[295].[2147483648] In position 11,2-11,11.[32m[INT_LIT] Retained infomation: yylval.ival=-2147483648[0m
+token[295].[99999999999999999] In position 12,1-12,17.[32m[INT_LIT] Retained infomation: yylval.ival=1569325055[0m
+token[285].[-] In position 13,1-13,1.
+token[295].[99999999999999999] In position 13,2-13,18.[32m[INT_LIT] Retained infomation: yylval.ival=1569325055[0m

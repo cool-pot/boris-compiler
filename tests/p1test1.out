@@ -1,0 +1,51 @@
+> Hello from scannerTester for boris compiler!
+token[258].[array] In position 4,1-4,5.
+token[262].[defun] In position 5,1-5,5.
+token[265].[do] In position 6,1-6,2.
+token[269].[else] In position 7,1-7,4.
+token[268].[elsif] In position 8,1-8,5.
+token[263].[end] In position 9,1-9,3.
+token[270].[foreach] In position 10,1-10,7.
+token[261].[global] In position 11,1-11,6.
+token[266].[if] In position 12,1-12,2.
+token[272].[in] In position 13,1-13,2.
+token[260].[local] In position 14,1-14,5.
+token[274].[print] In position 15,1-15,5.
+token[273].[return] In position 16,1-16,6.
+token[267].[then] In position 17,1-17,4.
+token[259].[tuple] In position 18,1-18,5.
+token[264].[while] In position 19,1-19,5.
+token[283].[!=] In position 21,1-21,2.
+token[291].[(] In position 22,1-22,1.
+token[292].[)] In position 23,1-23,1.
+token[286].[*] In position 24,1-24,1.
+token[284].[+] In position 25,1-25,1.
+token[276].[,] In position 26,1-26,1.
+token[285].[-] In position 27,1-27,1.
+token[277].[.] In position 28,1-28,1.
+token[275].[..] In position 29,1-29,2.
+token[287].[/] In position 30,1-30,1.
+token[290].[;] In position 31,1-31,1.
+token[278].[<] In position 32,1-32,1.
+token[294].[<->] In position 33,1-33,3.
+token[280].[<=] In position 34,1-34,2.
+token[293].[=] In position 35,1-35,1.
+token[282].[==] In position 36,1-36,2.
+token[279].[>] In position 37,1-37,1.
+token[281].[>=] In position 38,1-38,2.
+token[288].[[] In position 39,1-39,1.
+token[289].[]] In position 40,1-40,1.
+token[295].[0] In position 42,1-42,1.[32m[INT_LIT] Retained infomation: yylval.ival=0[0m
+token[295].[000] In position 43,1-43,3.[32m[INT_LIT] Retained infomation: yylval.ival=0[0m
+token[295].[30] In position 44,1-44,2.[32m[INT_LIT] Retained infomation: yylval.ival=30[0m
+token[295].[47] In position 45,1-45,2.[32m[INT_LIT] Retained infomation: yylval.ival=47[0m
+token[295].[9999999999999999999999] In position 47,1-47,22.[32m[INT_LIT] Retained infomation: yylval.ival=-1[0m
+token[295].[0000000000000000000000] In position 49,1-49,22.[32m[INT_LIT] Retained infomation: yylval.ival=0[0m
+token[296].[_] In position 51,1-51,1.[32m[ID] Retained infomation: yylval.sval=_[0m
+token[296].[a] In position 52,1-52,1.[32m[ID] Retained infomation: yylval.sval=a[0m
+token[296].[aa] In position 53,1-53,2.[32m[ID] Retained infomation: yylval.sval=aa[0m
+token[296].[aba] In position 54,1-54,3.[32m[ID] Retained infomation: yylval.sval=aba[0m
+token[296].[abdac] In position 55,1-55,5.[32m[ID] Retained infomation: yylval.sval=abdac[0m
+token[296].[_I_am_ID] In position 56,1-56,8.[32m[ID] Retained infomation: yylval.sval=_I_am_ID[0m
+token[296].[_I_might_be_considered_too_long] In position 57,1-57,31.[32m[ID] Retained infomation: yylval.sval=_I_might_be_considered_too_long[0m
+token[296].[this_is_a_definitely_way_too_long_ID_no_questions_about_it_yeah_yeah_yeah_yeah_yeah_yeah_yeah] In position 59,1-59,93.[32m[ID] Retained infomation: yylval.sval=this_is_a_definitely_way_too_long_ID_no_questions_[0m

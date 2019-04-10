@@ -1,0 +1,16 @@
+> Hello from scannerTester for boris compiler!
+token[266].[if] In position 2,1-2,2.
+token[291].[(] In position 2,3-2,3.
+token[296].[a] In position 2,4-2,4.[32m[ID] Retained infomation: yylval.sval=a[0m
+token[293].[=] In position 2,6-2,6.
+token[295].[1] In position 2,8-2,8.[32m[INT_LIT] Retained infomation: yylval.ival=1[0m
+token[292].[)] In position 2,9-2,9.
+token[296].[a] In position 4,2-4,2.[32m[ID] Retained infomation: yylval.sval=a[0m
+token[293].[=] In position 4,4-4,4.
+token[296].[a] In position 4,6-4,6.[32m[ID] Retained infomation: yylval.sval=a[0m
+token[284].[+] In position 4,8-4,8.
+token[295].[1] In position 4,10-4,10.[32m[INT_LIT] Retained infomation: yylval.ival=1[0m
+token[290].[;] In position 4,11-4,11.
+token[296].[b] In position 6,1-6,1.[32m[ID] Retained infomation: yylval.sval=b[0m
+token[293].[=] In position 8,2-8,2.
+token[295].[4] In position 8,4-8,4.[32m[INT_LIT] Retained infomation: yylval.ival=4[0m
