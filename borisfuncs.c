@@ -24,8 +24,8 @@ void yyerror(char *s, ...){
     fprintf(stderr, "\n");
 }
 
-void lexerTester(){ 
-    printf("> Hello from lexerTester for boris compiler!\n");
+void scannerTester(){ 
+    printf("> Hello from scannerTester for boris compiler!\n");
     int tok;
     do {
         tok = yylex();
@@ -49,6 +49,12 @@ void lexerTester(){
         
         printf("\n");
     } while (1);
+}
+
+void parserTester(){ 
+    printf("> Hello from parserTester for boris compiler!\n");
+    yyparse();
+    return;
 }
 
 struct pNode *newpNode(int type, ...){
@@ -372,8 +378,4 @@ void treefree(struct pNode *p){
         }
         default: printf("internal error: free bad node %d\n", p->pnodetype);
     }
-}
-
-int main(){
-    return yyparse();
 }

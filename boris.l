@@ -16,6 +16,8 @@ int yycolumn = 1;
 %}
 
 %option noyywrap nodefault yylineno
+%option nounput
+%option noinput
 
 %%
 array { return KW_ARRAY;}
