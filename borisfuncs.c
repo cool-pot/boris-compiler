@@ -176,7 +176,7 @@ void visualize(struct pNode *p, int level){
         printf("[EMPTY_NODE]\n"); 
         return;
     }
-    char nodetype2nodestr[][50] = {
+    char nodetype2nodestr[][100] = {
         "ID",                                       //1024
         "INT",                                      //1025
         "PLACEHOLDER",                              //1026
@@ -227,7 +227,7 @@ void visualize(struct pNode *p, int level){
         "DEFN_AS_SDD",                              //1071
         "SDD_LIST",                                 //1072
         "ROOT_INPUT",                               //1073
-        "NO_EXPR_GLOBAL_DECL"                       //1074
+        "NO_EXPR_GLOBAL_DECL",                      //1074
         "NO_EXPR_LOCAL_DECL"                        //1075
     };
 
