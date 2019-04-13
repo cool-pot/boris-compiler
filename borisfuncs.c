@@ -227,6 +227,8 @@ void visualize(struct pNode *p, int level){
         "DEFN_AS_SDD",                              //1071
         "SDD_LIST",                                 //1072
         "ROOT_INPUT",                               //1073
+        "NO_EXPR_GLOBAL_DECL"                       //1074
+        "NO_EXPR_LOCAL_DECL"                        //1075
     };
 
     switch(p->pnodetype) {
@@ -294,7 +296,9 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_DECL_AS_SDD:
         case NODETYPE_DEFN_AS_SDD:
         case NODETYPE_SDD_LIST:
-        case NODETYPE_ROOT_INPUT:{
+        case NODETYPE_ROOT_INPUT:
+        case NODETYPE_NO_EXPR_GLOBAL_DECL:
+        case NODETYPE_NO_EXPR_LOCAL_DECL:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s]\n", nodestr);
@@ -358,7 +362,9 @@ void treefree(struct pNode *p){
         case NODETYPE_DECL_AS_SDD:
         case NODETYPE_DEFN_AS_SDD:
         case NODETYPE_SDD_LIST:
-        case NODETYPE_ROOT_INPUT:{
+        case NODETYPE_ROOT_INPUT:
+        case NODETYPE_NO_EXPR_GLOBAL_DECL:
+        case NODETYPE_NO_EXPR_LOCAL_DECL:{
             for (int i = 0; i < p->childscount; i++){
                 treefree(p->childs[i]);
             }
