@@ -6,7 +6,8 @@ PARSER_TARGET = boris_parser
 clean:
 	rm -rf lex.yy.c boris_scanner boris_parser boris\
 		boris.lex.c boris.tab.c boris.tab.h \
-		example.input boris.output
+		example.input boris.output \
+		symboltable_test
 
 scanner: boris.l boris.y boris.h borisfuncs.c drivers/parser_driver.c
 	bison -d boris.y && \
@@ -23,3 +24,6 @@ parser-debug: boris.y
 	echo "" && \
 	echo "> Next:" && \
 	echo "> Take a look at 'boris.output'"
+
+symboltable_test:  drivers/symboltable_test_driver.c symboltable.c borisfuncs.c boris.tab.c boris.lex.c
+	$(CC) $(CFLAGS) -o $@ drivers/symboltable_test_driver.c symboltable.c borisfuncs.c boris.tab.c boris.lex.c

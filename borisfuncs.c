@@ -14,7 +14,7 @@
 # include "boris.tab.h" // yylloc definition, token number
 
 
-void yyerror(char *s, ...){
+void yyerror(char* s, ...){
     va_list ap;
     va_start(ap, s);
     fprintf(stderr, RED);

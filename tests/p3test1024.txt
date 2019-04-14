@@ -1,0 +1,15 @@
+local x = 2;
+defun fib(n)
+  local i;
+  local arr;
+  array arr[0..n]; *** array bounds depend on func
+  arr[0] = 0;
+  arr[1] = 1;
+  
+  foreach i in 2..n do
+    arr[i]=arr[i-2]+arr[i-1];
+  end for
+
+  return arr[n];
+end defun
+print fib(x);

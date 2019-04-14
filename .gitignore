@@ -4,6 +4,7 @@ example.input
 .DS_Store
 boris_scanner
 boris_parser
+symboltable_test
 boris
 .vscode/
 boris.tab*

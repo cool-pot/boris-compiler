@@ -13,6 +13,7 @@
 #define MAX_INT_LIT 2147483647
 #define MAX_INT_LIT_LENGTH 10
 #define PARSE_TREE_MAX_CHILD 50
+#define MAX_SYMBOL_TABLE_SIZE 1000
 
 /* colors setting*/
 #define RESET   "\033[0m"
@@ -119,5 +120,35 @@ struct pNode *newpNode(int type, ...);
 struct pNode *newsNode(char* sval);
 struct pNode *newiNode(int ival);
 struct pNode *newplaceholderNode(int tok);
+
+
+/* symbol table struct*/
+#define GLOBAL_SCOPE 'g'
+#define LOCAL_SCOPE 'l'
+#define VALUETYPE_TUPLE 'T'
+#define VALUETYPE_ARRAY 'A'
+#define VALUETYPE_INT 'I'
+#define VALUETYPE_FUNC 'F'
+#define INITTYPE 0
+
+struct symboltableRecordValue {
+  int ival;             // reserved for VALUETYPE_INT
+  int* ivallist;        // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ivallistlength;   // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+};
+
+struct symboltableRecord {
+    int valid;                                // 0 if not valid
+    char* sval;                               // ID
+    int scope;                                // GLOBAL_SCOPE or LOCAL_SCOPE
+    int valuetype;                            // VALUETYPE_TUPLE,  VALUETYPE_ARRAY,  VALUETYPE_INT
+    struct symboltableRecordValue* value;     // if null, this record is not initilized
+    int line;                                 // the line when this variable is declared
+};
+
+struct symboltable {
+  int length;                           // total length
+  struct symboltableRecord* records;    // am array of symboltableRecord
+};
 
 #endif // COMPILERDESIGNPROJECT_BORIS_H
