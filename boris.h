@@ -14,6 +14,7 @@
 #define MAX_INT_LIT_LENGTH 10
 #define PARSE_TREE_MAX_CHILD 50
 #define MAX_SYMBOL_TABLE_SIZE 1000
+#define SYMBOLTABLE_VERBOSE 1
 
 /* colors setting*/
 #define RESET   "\033[0m"
@@ -134,7 +135,8 @@ struct pNode *newplaceholderNode(int tok);
 struct symboltableRecordValue {
   int ival;             // reserved for VALUETYPE_INT
   int* ivallist;        // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
-  int ivallistlength;   // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ivallist_start;   // the start index, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ivallistlength;   // the total length, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
 };
 
 struct symboltableRecord {
