@@ -14,7 +14,6 @@
 #define MAX_INT_LIT_LENGTH 10
 #define PARSE_TREE_MAX_CHILD 50
 #define MAX_SYMBOL_TABLE_SIZE 1000
-#define SYMBOLTABLE_VERBOSE 1
 
 /* colors setting*/
 #define RESET   "\033[0m"
@@ -80,6 +79,7 @@
 /* Nodes in the Parse Tree */
 struct pNode {
   int pnodetype;
+  int line;
   int childscount;
   struct pNode* childs[PARSE_TREE_MAX_CHILD];
 };
@@ -87,6 +87,7 @@ struct pNode {
 struct sNode {
   // a terminal node for storing string 
   int pnodetype; // = NODETYPE_ID
+  int line;
   int childscount; // = 0
   char *sval;
 };
@@ -94,6 +95,7 @@ struct sNode {
 struct iNode {
   // a terminal node for storing integer
   int pnodetype; // = NODETYPE_INT
+  int line;
   int childscount; // = 0
   int ival;
 };
@@ -101,6 +103,7 @@ struct iNode {
 struct placeholderNode {
   // a terminal node for keywords, operators, constant string tokens. etc.
   int pnodetype; // = NODETYPE_PLACEHOLDEER
+  int line;
   int childscount; // = 0
   int tok;
   char tokstr[20]; 
@@ -150,6 +153,7 @@ struct symboltableRecord {
 
 struct symboltable {
   int length;                           // total length
+  int scope;                            // scope = GLOBAL_SCOPE or LOCAL_SCOPE
   struct symboltableRecord* records;    // am array of symboltableRecord
 };
 

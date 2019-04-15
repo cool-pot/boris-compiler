@@ -74,6 +74,7 @@ struct pNode *newpNode(int type, ...){
         yyerror("Parse tree node initialization error, too many child nodes");
         exit(996);
     }
+    parent->line = yylloc.first_line;
     parent->childscount = num;
     parent->pnodetype = type;
     int i = 0;
@@ -94,6 +95,7 @@ struct pNode *newsNode(char* sval){
         exit(0);
     }
     parent->pnodetype = NODETYPE_ID;
+    parent->line = yylloc.first_line;
     parent->childscount = 0;
     parent->sval = sval; 
     return (struct pNode *)parent;
@@ -106,6 +108,7 @@ struct pNode *newiNode(int ival){
         exit(0);
     }
     parent->pnodetype = NODETYPE_INT;
+    parent->line = yylloc.first_line;
     parent->childscount = 0;
     parent->ival = ival; 
     return (struct pNode *)parent;
@@ -119,6 +122,7 @@ struct pNode *newplaceholderNode(int tok){
         exit(0);
     }
     parent->pnodetype = NODETYPE_PLACEHOLDER;
+    parent->line = yylloc.first_line;
     parent->childscount = 0;
     parent->tok = tok; 
     switch (tok)
@@ -235,19 +239,19 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_ID: {
             printManySpace(level*4);
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
-            printf("[%s]%s\n", nodestr, ((struct sNode*)p)->sval);
+            printf("[%s]%s (@line %d)\n", nodestr, ((struct sNode*)p)->sval, p->line);
             break;
         }
         case NODETYPE_INT: {
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
-            printf("[%s]%d\n", nodestr, ((struct iNode*)p)->ival);
+            printf("[%s]%d  (@line %d)\n", nodestr, ((struct iNode*)p)->ival, p->line);
             break;
         }
         case NODETYPE_PLACEHOLDER: {
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
-            printf("[%s-%d]%s\n", nodestr, ((struct placeholderNode*)p)->tok, ((struct placeholderNode*)p)->tokstr);
+            printf("[%s-%d]%s (@line %d)\n", nodestr, ((struct placeholderNode*)p)->tok, ((struct placeholderNode*)p)->tokstr, p->line);
             break;
         }
         case NODETYPE_EXPR_COMMA_EXPR:
@@ -301,7 +305,7 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_NO_EXPR_LOCAL_DECL:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
-            printf("[%s]\n", nodestr);
+            printf("[%s] (@line %d)\n", nodestr, p->line);
             for (int i = 0; i < p->childscount; i++){
                 struct pNode *child = p->childs[i];
                 visualize(child, level+1);

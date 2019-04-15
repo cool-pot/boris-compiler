@@ -12,6 +12,8 @@
 # include "boris.h"
 # include "boris.tab.h" // yylloc definition, token number
 
+#define SYMBOLTABLE_VERBOSE 1
+
 struct symboltable* init_symboltable(int length){
     struct symboltable* tb = malloc(sizeof(struct symboltable));//TODO free
     struct symboltableRecord* records = malloc(length * sizeof(struct symboltableRecord));//TODO free
