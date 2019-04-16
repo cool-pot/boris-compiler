@@ -117,7 +117,7 @@ sdd: statement {$$ = newpNode(NODETYPE_STATEMENT_AS_SDD, 1, $1); }
     | defn {$$ = newpNode(NODETYPE_DEFN_AS_SDD, 1, $1); }
 ;
 
-defn: KW_DEFUN ID OP_LPAR ID comma_id_list OP_RPAR body KW_END KW_DEFUN { $$ = newpNode(NODETYPE_FUNC_DEFN, 9, newplaceholderNode(KW_DEFUN), newsNode($2), newplaceholderNode(OP_LPAR), newsNode($4), $5, newplaceholderNode(OP_LPAR), $7, newplaceholderNode(KW_END), newplaceholderNode(KW_DEFUN));}
+defn: KW_DEFUN ID OP_LPAR ID comma_id_list OP_RPAR body KW_END KW_DEFUN { $$ = newpNode(NODETYPE_FUNC_DEFN, 9, newplaceholderNode(KW_DEFUN), newsNode($2), newplaceholderNode(OP_LPAR), newsNode($4), $5, newplaceholderNode(OP_RPAR), $7, newplaceholderNode(KW_END), newplaceholderNode(KW_DEFUN));}
 ;
 
 comma_id_list: /* empty */ { $$ = NULL; } 

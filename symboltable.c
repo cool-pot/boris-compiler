@@ -28,7 +28,7 @@ struct symboltable* init_symboltable(int length){
         records[i].scope = -1;
         records[i].sval = NULL;
         records[i].value = NULL;
-        records[i].valuetype = 'U';
+        records[i].valuetype = VALUETYPE_UNKNOWN;
     }
     tb->length = length;
     tb->records = records;
@@ -46,7 +46,7 @@ struct symboltableRecord* lookup_symbol(char* sval, int scope, struct symboltabl
     struct symboltableRecord* ret = NULL;
     struct symboltableRecord* p = tb->records;
     for (int i = 0; i < tb->length; i++, p++){
-        if((p->scope == scope) && (strcmp(p->sval, sval) == 0) && (p->valid != 0)){
+        if((p->scope == scope) && (strcmp(p->sval, sval) == 0) && (p->valid != 0)){ // only valid record will be returned
             if (ret != NULL) {
                 fprintf(stderr, RED"[symbol table error]duplicated declaration for %s in this scope"RESET, sval);
                 exit(999);
@@ -72,7 +72,7 @@ int next_available_symbol_slot(struct symboltable* tb){
 }
 
 void declare_symbol(char* sval, int valuetype, int scope, int line, struct symboltable* tb){
-    if (valuetype != VALUETYPE_FUNC && valuetype != VALUETYPE_ARRAY && valuetype != VALUETYPE_TUPLE && valuetype != VALUETYPE_INT){
+    if (valuetype != VALUETYPE_FUNC && valuetype != VALUETYPE_ARRAY && valuetype != VALUETYPE_TUPLE && valuetype != VALUETYPE_INT && valuetype != VALUETYPE_UNKNOWN){
         fprintf(stderr, RED"[symbol table error]internal error, bad value type"RESET);
         exit(994);
     }
@@ -90,16 +90,17 @@ void declare_symbol(char* sval, int valuetype, int scope, int line, struct symbo
     tb->records[index].valuetype = valuetype;
     tb->records[index].scope = scope;
     tb->records[index].line = line;
-    tb->records[index].valid += 1;
+    tb->records[index].valid = 1;
     tb->records[index].value = NULL;
     // verbose print
     if (SYMBOLTABLE_VERBOSE) {
-        char symboltype[6];
+        char symboltype[10];
         char symbolscope[7];
         if (valuetype == VALUETYPE_INT) { strcpy(symboltype, "int"); } 
         else if (valuetype == VALUETYPE_FUNC) { strcpy(symboltype, "func"); } 
         else if (valuetype == VALUETYPE_TUPLE) { strcpy(symboltype, "tuple"); } 
         else if (valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
+        else if (valuetype == VALUETYPE_UNKNOWN) { strcpy(symboltype, "unknown"); }
         if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
         else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
         fprintf(stderr, GREEN"[symbol table decl symbol]declare %s %s symbol `%s` in line %d.\n"RESET, symbolscope, symboltype, sval, line);
@@ -108,35 +109,61 @@ void declare_symbol(char* sval, int valuetype, int scope, int line, struct symbo
     return;
 }
 
-void update_int_symbol(char* sval, int scope, int ival, int line, struct symboltable* tb){
+void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb){
     struct symboltableRecord* r = lookup_symbol(sval, scope, tb);
     if (r == NULL) {
         fprintf(stderr, RED"[symbol table error]update a undeclared symbol %s in this scope is not valid"RESET, sval);
         exit(993);
     }
     if (r->valuetype != VALUETYPE_INT) {
-        fprintf(stderr, RED"[symbol table error]can't update symbol %s in this scope with a int value"RESET, sval);
+        fprintf(stderr, RED"[symbol table error]wrong type, can't init a int value to non-int symbol %s in this scope"RESET, sval);
         exit(992);
     }
-    // unpdate the symbol value here
+    // init the symbol value here
     struct symboltableRecordValue* value = malloc(sizeof(struct symboltableRecordValue)); //TODO Closed. will be free in remove_symbol.
     if(!value) {
         fprintf(stderr, RED"[symbol table error]Out of space."RESET);
         exit(0);
     }
-    value->ival = ival;
+    value->ival = 0; // default value 0
     r->value = value;
     // verbose print
     if (SYMBOLTABLE_VERBOSE) {
         char symbolscope[7];
         if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
         else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
-        fprintf(stderr, GREEN"[symbol table update]update %s int symbol `%s` in line %d.\n"RESET, symbolscope, sval, line);
+        fprintf(stderr, GREEN"[symbol table update]init %s int symbol `%s` in line %d.\n"RESET, symbolscope, sval, line);
     }
     return;
 }
 
-void update_int_list_symbol(char* sval, int scope, int* ivallist, int ivallist_start, int ivallistlength, int line, struct symboltable* tb){
+void update_int_symbol(char* sval, int scope, int ival, int line, struct symboltable* tb){
+    struct symboltableRecord* r = lookup_symbol(sval, scope, tb);
+    if (r == NULL) {
+        fprintf(stderr, RED"[symbol table error]update a undeclared symbol `%s` in this scope is not valid"RESET, sval);
+        exit(993);
+    }
+    if (r->valuetype != VALUETYPE_INT) {
+        fprintf(stderr, RED"[symbol table error]wrong type, can't set symbol `%s` in this scope with a int value"RESET, sval);
+        exit(992);
+    }
+    if (r->value == NULL) {
+        fprintf(stderr, RED"[symbol table error]not initalized symbol `%s` can't be set."RESET, sval);
+        exit(933);
+    }
+    // set value here
+    r->value->ival = ival;
+    // verbose print
+    if (SYMBOLTABLE_VERBOSE) {
+        char symbolscope[7];
+        if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
+        else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
+        fprintf(stderr, GREEN"[symbol table update]update %s int symbol `%s` to %d in line %d.\n"RESET, symbolscope, sval, ival, line);
+    }
+    return;
+}
+
+void init_int_list_symbol(char* sval, int scope, int ivallist_start, int ivallistlength, int line, struct symboltable* tb){
     struct symboltableRecord* r = lookup_symbol(sval, scope, tb);
     if (r == NULL) {
         fprintf(stderr, RED"[symbol table error]update a undeclared symbol %s in this scope is not valid"RESET, sval);
@@ -150,11 +177,15 @@ void update_int_list_symbol(char* sval, int scope, int* ivallist, int ivallist_s
         fprintf(stderr, RED"[symbol table error]%s, tuple index must start from 0"RESET, sval);
         exit(991);
     }
-    // unpdate the symbol value here
+    // init the symbol value here
     struct symboltableRecordValue* value = malloc(sizeof(struct symboltableRecordValue)); //TODO Closed. will be free in remove_symbol.
     if(!value) {
         fprintf(stderr, RED"[symbol table error]Out of space."RESET);
         exit(0);
+    }
+    int* ivallist = malloc(ivallistlength*sizeof(int));
+    for (int i = 0; i < ivallistlength; i++) {
+        ivallist[i] = 0;
     }
     value->ivallist = ivallist;
     value->ivallist_start = ivallist_start;
@@ -168,7 +199,7 @@ void update_int_list_symbol(char* sval, int scope, int* ivallist, int ivallist_s
         else if (r->valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
         if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
         else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
-        fprintf(stderr, GREEN"[symbol table update]update %s %s symbol `%s` in line %d.\n"RESET,symbolscope, symboltype, sval, line);
+        fprintf(stderr, GREEN"[symbol table update]init %s %s symbol `%s` in line %d.\n"RESET,symbolscope, symboltype, sval, line);
     }
     return;
 }
@@ -184,7 +215,7 @@ void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int u
         exit(991);
     }
     if (r->value == NULL) {
-        fprintf(stderr, RED"[symbol table error]can't update uninitialized symbol %s"RESET, sval);
+        fprintf(stderr, RED"[symbol table error]can't set uninitialized symbol %s"RESET, sval);
         exit(990);
     }
     if (updateindex < r->value->ivallist_start || updateindex >= ( r->value->ivallist_start + r->value->ivallistlength)){
@@ -201,9 +232,8 @@ void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int u
         else if (r->valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
         if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
         else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
-        fprintf(stderr, GREEN"[symbol table update]update %s %s symbol `%s` in line %d.\n"RESET,symbolscope, symboltype, sval, line);
+        fprintf(stderr, GREEN"[symbol table update]update %s %s symbol `%s` in line %d. set %s[%d]=%d\n"RESET,symbolscope, symboltype, sval, line, sval, updateindex, updateval);
     }
-    
     return;
 }
 
@@ -224,6 +254,11 @@ void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
                     free(record->value);
                     break;
                 }
+                case VALUETYPE_UNKNOWN:{
+                    printf(YELLOW"[symbol table warning] remove a never used symbol `%s`. maybe redundant%c"RESET, sval, record->valuetype);
+                    free(record->value);
+                    break;
+                }
                 case VALUETYPE_ARRAY:
                 case VALUETYPE_TUPLE:{
                     free(record->value->ivallist);
@@ -231,19 +266,20 @@ void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
                     break;
                 }
                 default:
-                    printf(RED"[symbol table error]%s, internal error, remove unsupported valuetype %c"RESET, sval, record->valuetype);
+                    printf(RED"[symbol table error]`%s`, internal error, remove unsupported valuetype %c"RESET, sval, record->valuetype);
                     exit(984);
             }
         }
         // verbose print
         if (SYMBOLTABLE_VERBOSE) {
             int valuetype = record->valuetype;
-            char symboltype[6];
+            char symboltype[10];
             char symbolscope[7];
             if (valuetype == VALUETYPE_INT) { strcpy(symboltype, "int"); } 
             else if (valuetype == VALUETYPE_FUNC) { strcpy(symboltype, "func"); } 
             else if (valuetype == VALUETYPE_TUPLE) { strcpy(symboltype, "tuple"); } 
             else if (valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
+            else if (valuetype == VALUETYPE_UNKNOWN) { strcpy(symboltype, "unknown"); }
             if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
             else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
             fprintf(stderr, GREEN"[symbol table remove symbol]remove %s %s symbol `%s` in line %d.\n"RESET, symbolscope, symboltype, sval, line);
@@ -251,6 +287,39 @@ void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
     }
     return;
 }
+
+void set_symbol_type(char* sval, int valuetype, int scope, int line, struct symboltable* tb){
+    if (valuetype != VALUETYPE_FUNC && valuetype != VALUETYPE_ARRAY && valuetype != VALUETYPE_TUPLE && valuetype != VALUETYPE_INT && valuetype != VALUETYPE_UNKNOWN){
+        fprintf(stderr, RED"[symbol table error]internal error, bad value type"RESET);
+        exit(994);
+    }
+    if (valuetype == VALUETYPE_UNKNOWN){ // only unknown type can be reset
+        fprintf(stderr, RED"[symbol table error]can't reset to unknown type"RESET);
+        exit(949);
+    }
+    struct symboltableRecord* record = lookup_symbol(sval, scope, tb);
+    if (record == NULL) {
+        fprintf(stderr, RED"[symbol table error]symbol `%s` not found in this scope"RESET, sval);
+        exit(955);
+    } 
+    // set symbol type here
+    record->valuetype = valuetype;
+    // verbose print
+    if (SYMBOLTABLE_VERBOSE) {
+        char symboltype[10];
+        char symbolscope[7];
+        if (valuetype == VALUETYPE_INT) { strcpy(symboltype, "int"); } 
+        else if (valuetype == VALUETYPE_FUNC) { strcpy(symboltype, "func"); } 
+        else if (valuetype == VALUETYPE_TUPLE) { strcpy(symboltype, "tuple"); } 
+        else if (valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
+        else if (valuetype == VALUETYPE_UNKNOWN) { strcpy(symboltype, "unknown"); }
+        if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
+        else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
+        fprintf(stderr, GREEN"[symbol table update]%s unknown symbol `%s` has been set to type %s.\n"RESET, symbolscope, sval, symboltype);
+    }
+    return;
+}
+
 
 void print_symboltableRecord(struct symboltableRecord* record){
     printf("[Record]");
@@ -293,8 +362,18 @@ void print_symboltableRecord(struct symboltableRecord* record){
                 }
                 break;
             }
+            case VALUETYPE_UNKNOWN:{
+                if (record->value != NULL) { 
+                    printf(RED"[symbol table error]`%s`, internal error, unknown valuetype has not null value %c"RESET, record->sval, record->valuetype);
+                    exit(975);
+                }else {
+                     printf("value:uninitialized");
+                }
+                break;
+            }
             default:
-                printf(RED"[symbol table error]internal error, unsupported valuetype %c"RESET, record->valuetype);
+                printf(RED"[symbol table error]internal error, print reecord with unsupported valuetype %c"RESET, record->valuetype);
+                exit(974);
         }
         printf("\n");
     } else{
@@ -315,43 +394,39 @@ void print_symboltable(struct symboltable* tb){
 void symbolTableTester(){
     struct symboltable* tb = init_symboltable(3);
     
-    // init a global int value "hello" in line 10
-    declare_symbol("hello", VALUETYPE_INT, GLOBAL_SCOPE, 10, tb);
-    update_int_symbol("hello", GLOBAL_SCOPE, 1, 10, tb);
-
-    // init a local int value "world" in line 12
-    declare_symbol("world", VALUETYPE_INT, LOCAL_SCOPE, 12, tb);
-    update_int_symbol("world", LOCAL_SCOPE, 2, 12, tb);
-    
-    // update a global int value "hello" 
-    update_int_symbol("hello", GLOBAL_SCOPE, 3, 13, tb);
-
-    // declare an already exists symbol. it should fail
-    // declare_symbol("world", VALUETYPE_INT, LOCAL_SCOPE, 12, tb); 
-
-    // declare too many different symbols. it should fail
-    // declare_symbol("far", VALUETYPE_INT, LOCAL_SCOPE, 13, tb); declare_symbol("bar", VALUETYPE_INT, LOCAL_SCOPE, 14, tb);
-
-    // declare symbols with a bad valuetype. it should fail
-    // declare_symbol("badvaluetype", VALUETYPE_INT+999, LOCAL_SCOPE, 15, tb);
-
+    // global hello = 1; # line 1
+    declare_symbol("hello", VALUETYPE_UNKNOWN, GLOBAL_SCOPE, 1, tb);
+    set_symbol_type("hello", VALUETYPE_INT, GLOBAL_SCOPE, 1, tb);
+    init_int_symbol("hello", GLOBAL_SCOPE, 1, tb);
+    update_int_symbol("hello", GLOBAL_SCOPE, 10, 1, tb);
     print_symboltable(tb);
 
-    // remove hello
+    // local myarray; # line 2
+    declare_symbol("myarray", VALUETYPE_UNKNOWN, LOCAL_SCOPE, 2, tb);
+    print_symboltable(tb);
+    
+    // array myarray[10..14] # line 3
+    set_symbol_type("myarray", VALUETYPE_ARRAY, LOCAL_SCOPE, 3, tb);
+    init_int_list_symbol("myarray", LOCAL_SCOPE, 10, 5, 3, tb);
+    print_symboltable(tb);
+
+    //myarray[11] = 3
+    update_int_list_symbol_itemwise("myarray", LOCAL_SCOPE, 3, 11, 4, tb);
+    print_symboltable(tb);
+
+    //local mytuple = 1,2,3 # line 4
+    declare_symbol("mytuple", VALUETYPE_UNKNOWN, LOCAL_SCOPE, 4, tb);
+    set_symbol_type("mytuple", VALUETYPE_TUPLE, LOCAL_SCOPE, 4, tb);
+    init_int_list_symbol("mytuple", LOCAL_SCOPE, 0, 3, 4, tb);
+    int buffer[] = {1, 2, 3};
+    int buffer_size = 3;
+    for ( int i = 0; i < buffer_size; i++) {
+        update_int_list_symbol_itemwise("mytuple", LOCAL_SCOPE, buffer[i], i, 4, tb);
+    } 
+    print_symboltable(tb);
+
+    // remove hello # line 14
     remove_symbol("hello", GLOBAL_SCOPE, 14, tb);
     print_symboltable(tb);
-
-    // init a local array 
-    declare_symbol("myarray", VALUETYPE_ARRAY, LOCAL_SCOPE, 99, tb);
-    int listvalue[] = {1,2,3};
-    update_int_list_symbol("myarray", LOCAL_SCOPE, listvalue, 9, 3, 99, tb); //array can start at any index
-    print_symboltable(tb);
-
-    // init a global tuple
-    declare_symbol("mytuple", VALUETYPE_TUPLE, GLOBAL_SCOPE, 32, tb);
-    int listvalue2[] = {9,9,9,9,9,9,9,9};
-    update_int_list_symbol("mytuple", GLOBAL_SCOPE, listvalue2, 0, 8, 32, tb); //tuple always start at 0
-    print_symboltable(tb);
-
 
 }

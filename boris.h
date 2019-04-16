@@ -133,6 +133,7 @@ struct pNode *newplaceholderNode(int tok);
 #define VALUETYPE_ARRAY 'A'
 #define VALUETYPE_INT 'I'
 #define VALUETYPE_FUNC 'F'
+#define VALUETYPE_UNKNOWN 'U'
 #define INITTYPE 0
 
 struct symboltableRecordValue {
