@@ -163,6 +163,7 @@ struct pNode *newiNode(int ival);
 struct pNode *newplaceholderNode(int tok);
 void visualize(struct pNode *p, int level);
 void treefree(struct pNode *p);
+void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltableStack* local_tbstk);
 
 /* symbol table handler*/
 struct symboltableStack* init_symboltableStack(int capacity);

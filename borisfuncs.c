@@ -389,3 +389,83 @@ void treefree(struct pNode *p){
         default: printf("internal error: free bad node %d\n", p->pnodetype);
     }
 }
+
+// tree walker and type [synthesis, inference]
+void check_type_in_list(int valuetype, int truth[], int length){
+    int equal = 0;
+    for (int i = 0; i < length; i++){
+        if (valuetype == truth[i]) equal++;
+    }
+    if (equal == 0) {
+        fprintf(stderr, YELLOW"type conflicts `%c`, should be in [", valuetype);
+        for (int i = 0; i < length; i++){
+            if (i == length-1) fprintf(stderr, "`%c`", truth[i]);
+            else fprintf(stderr, "`%c`,", truth[i]);
+        }
+        fprintf(stderr, "]\n"RESET);
+    }
+}
+
+void check_type_equal(int valuetype, int truth){
+    int trutharray[] = {truth};
+    check_type_in_list(valuetype, trutharray, 1);
+}
+
+int type_synthesis(struct pNode* exprnode){
+    if (exprnode == NULL) return -1;
+    switch(exprnode->pnodetype){
+        case NODETYPE_SINGLE_INT_AS_EXPR:{
+            return VALUETYPE_INT;
+            break;
+        }
+        case NODETYPE_EXPR_COMMA_EXPR:{
+            int left_valuetype = type_synthesis(exprnode->childs[0]);
+            int right_valuetype = type_synthesis(exprnode->childs[2]);
+            int truth[] = {VALUETYPE_TUPLE, VALUETYPE_INT};
+            check_type_in_list(left_valuetype, truth, 2); 
+            check_type_in_list(right_valuetype, truth, 2); 
+            return VALUETYPE_TUPLE;
+            break;
+        }
+        default: {
+            printf("visit unsupported node type for type_synthesis: %d\n", exprnode->pnodetype);
+        }
+    }
+    return -1;
+}
+
+void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
+    if (p == NULL) return;
+    switch(p->pnodetype){
+        case NODETYPE_ROOT_INPUT:{
+            printf("> Start walking on parse tree:\n\n");
+            treewalker(p->childs[0], global_tb, local_tbstk);
+            break;
+        }
+        case NODETYPE_SDD_LIST:
+        case NODETYPE_DECL_AS_SDD:{
+            for (int i = 0; i < p->childscount; i++)
+                treewalker(p->childs[i], global_tb, local_tbstk);
+            break;
+        }
+        case NODETYPE_NO_EXPR_LOCAL_DECL:{
+            struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            declare_symbol(snode->sval, VALUETYPE_UNKNOWN, LOCAL_SCOPE, snode->line, local_tb);
+            break;
+        }
+        case NODETYPE_NO_EXPR_GLOBAL_DECL:{
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            declare_symbol(snode->sval, VALUETYPE_UNKNOWN, GLOBAL_SCOPE, snode->line, global_tb);
+            break;
+        }
+        case NODETYPE_GLOBAL_DECL:{
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            struct pNode * exprnode = p->childs[3]; 
+            int valuetype = type_synthesis(exprnode);
+            declare_symbol(snode->sval, valuetype, GLOBAL_SCOPE, snode->line, global_tb);
+            break;
+        }
+        default: printf("visit unsupported node type for treewalker: %d\n", p->pnodetype);
+    }
+}

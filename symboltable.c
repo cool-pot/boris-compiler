@@ -45,7 +45,9 @@ struct symboltableRecord* lookup_symbol(char* sval, int scope, struct symboltabl
         fprintf(stderr, RED"[symbol table error]internal error, unsupported scope: %d"RESET, scope);
         exit(997);
     } else if (tb == NULL || tb->length <= 0 || tb->records == NULL) {
-        fprintf(stderr, RED"[symbol table error]internal error, invalid symbol table"RESET);
+        fprintf(stderr, RED"[symbol table error]internal error, invalid symbol table in lookup_symbol");
+        fprintf(stderr, "\ntb:%p, ", tb);
+        if (tb) fprintf(stderr, " tb->length:%d, tb->records:%p"RESET, tb->length, tb->records);
         exit(998);
     } 
     struct symboltableRecord* ret = NULL;
@@ -65,7 +67,7 @@ struct symboltableRecord* lookup_symbol(char* sval, int scope, struct symboltabl
 
 int next_available_symbol_slot(struct symboltable* tb){
     if (tb == NULL || tb->length <= 0 || tb->records == NULL) {
-        fprintf(stderr, RED"[symbol table error]internal error, invalid symbol table"RESET);
+        fprintf(stderr, RED"[symbol table error]internal error, invalid symbol table in next_available_symbol_slot"RESET);
         exit(998);
     }
     for (int i = 0; i < tb->length; i++){
@@ -260,7 +262,7 @@ void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
         fprintf(stderr, RED"[symbol table error]internal error, unsupported scope: %d"RESET, scope);
         exit(997);
     } else if (tb == NULL || tb->length <= 0 || tb->records == NULL) {
-        fprintf(stderr, RED"[symbol table error]internal error, invalid symbol table"RESET);
+        fprintf(stderr, RED"[symbol table error]internal error, invalid symbol table in remove_symbol"RESET);
         exit(998);
     }
     struct symboltableRecord* record = lookup_symbol(sval, scope, tb);

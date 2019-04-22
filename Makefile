@@ -14,10 +14,10 @@ scanner: boris.l boris.y boris.h borisfuncs.c drivers/parser_driver.c
 	flex -oboris.lex.c boris.l && \
 	$(CC) $(CFLAGS) -o $(SCANNER_TARGET) boris.tab.c boris.lex.c borisfuncs.c drivers/scanner_driver.c
 
-parser: boris.l boris.y boris.h borisfuncs.c drivers/parser_driver.c
+parser: boris.l boris.y boris.h borisfuncs.c drivers/parser_driver.c symboltable.c
 	bison -d boris.y && \
 	flex -oboris.lex.c boris.l && \
-	$(CC) $(CFLAGS) -o $(PARSER_TARGET) boris.tab.c boris.lex.c borisfuncs.c drivers/parser_driver.c
+	$(CC) $(CFLAGS) -o $(PARSER_TARGET) boris.tab.c boris.lex.c borisfuncs.c drivers/parser_driver.c symboltable.c
 
 parser-debug: boris.y
 	bison -d --report=look-ahead,itemset boris.y && \
