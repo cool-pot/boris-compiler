@@ -13,7 +13,8 @@
 #define MAX_INT_LIT 2147483647
 #define MAX_INT_LIT_LENGTH 10
 #define PARSE_TREE_MAX_CHILD 50
-#define MAX_SYMBOL_TABLE_SIZE 1000
+#define MAX_SYMBOLTABLE_SIZE 1000
+#define MAX_SYMBOLTABLE_STACK_SIZE 100
 
 /* colors setting*/
 #define RESET   "\033[0m"
@@ -109,23 +110,6 @@ struct placeholderNode {
   char tokstr[20]; 
 };
 
-/* interface to the lexer */
-extern int yylineno; /* from lexer */
-extern char *yytext; /* from lexer */
-extern int yylex(); /* from lexer */
-extern int yyparse(); /* from parser */
-void yyerror(char *s, ...);
-void visualize(struct pNode *p, int level);
-void treefree(struct pNode *p);
-
-
-/* build a Parse Tree*/
-struct pNode *newpNode(int type, ...);
-struct pNode *newsNode(char* sval);
-struct pNode *newiNode(int ival);
-struct pNode *newplaceholderNode(int tok);
-
-
 /* symbol table struct*/
 #define GLOBAL_SCOPE 'g'
 #define LOCAL_SCOPE 'l'
@@ -133,7 +117,8 @@ struct pNode *newplaceholderNode(int tok);
 #define VALUETYPE_ARRAY 'A'
 #define VALUETYPE_INT 'I'
 #define VALUETYPE_FUNC 'F'
-#define VALUETYPE_UNKNOWN 'U'
+#define VALUETYPE_UNKNOWN 'U'        //only for vairable just after declariation
+#define VALUETYPE_LINK_TO_GLOBAL 'L' //only for local scope vairable name to access the global symboltable
 #define INITTYPE 0
 
 struct symboltableRecordValue {
@@ -147,7 +132,7 @@ struct symboltableRecord {
     int valid;                                // 0 if not valid
     char* sval;                               // ID
     int scope;                                // GLOBAL_SCOPE or LOCAL_SCOPE
-    int valuetype;                            // VALUETYPE_TUPLE,  VALUETYPE_ARRAY,  VALUETYPE_INT
+    int valuetype;                            // VALUETYPE_XXXXXX
     struct symboltableRecordValue* value;     // if null, this record is not initilized
     int line;                                 // the line when this variable is declared
 };
@@ -155,7 +140,50 @@ struct symboltableRecord {
 struct symboltable {
   int length;                           // total length
   int scope;                            // scope = GLOBAL_SCOPE or LOCAL_SCOPE
-  struct symboltableRecord* records;    // am array of symboltableRecord
+  struct symboltableRecord* records;    // an array of symboltableRecord
 };
 
+struct symboltableStack {
+  int capacity;                                                         // total length of tbarray
+  int current_length;                                                   // current length, 0 if empty
+  struct symboltable* tbptrs[MAX_SYMBOLTABLE_STACK_SIZE];               // an array of symboltabletable pointers
+};
+
+/* interface to the lexer, parser */
+extern int yylineno; /* from lexer */
+extern char *yytext; /* from lexer */
+extern int yylex(); /* from lexer */
+extern int yyparse(); /* from parser */
+void yyerror(char *s, ...);
+
+/* build a Parse Tree*/
+struct pNode *newpNode(int type, ...);
+struct pNode *newsNode(char* sval);
+struct pNode *newiNode(int ival);
+struct pNode *newplaceholderNode(int tok);
+void visualize(struct pNode *p, int level);
+void treefree(struct pNode *p);
+
+/* symbol table handler*/
+struct symboltableStack* init_symboltableStack(int capacity);
+void pop_symboltableStack(struct symboltableStack* tbstk);
+void push_symboltableStack(struct symboltable* tb, struct symboltableStack* tbstk);
+struct symboltable* top_symboltableStack(struct symboltableStack* tbstk);
+void remove_symboltableStack(struct symboltableStack* tbstk);
+void print_symboltableStack(struct symboltableStack* tbstk);
+
+struct symboltable* init_symboltable(int length, int scope);
+void remove_symboltable(struct symboltable* tb);
+void print_symboltable(struct symboltable* tb);
+
+struct symboltableRecord* lookup_symbol(char* sval, int scope, struct symboltable* tb);
+int next_available_symbol_slot(struct symboltable* tb);
+void declare_symbol(char* sval, int valuetype, int scope, int line, struct symboltable* tb);
+void set_symbol_type(char* sval, int valuetype, int scope, int line, struct symboltable* tb);
+void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb);
+void update_int_symbol(char* sval, int scope, int ival, int line, struct symboltable* tb);
+void init_int_list_symbol(char* sval, int scope, int ivallist_start, int ivallistlength, int line, struct symboltable* tb);
+void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int updateindex, int line, struct symboltable* tb);
+void remove_symbol(char* sval, int scope, int line, struct symboltable* tb);
+void print_symboltableRecord(struct symboltableRecord* record);
 #endif // COMPILERDESIGNPROJECT_BORIS_H
