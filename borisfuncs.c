@@ -397,31 +397,46 @@ void treefree(struct pNode *p){
  */
 
 // look up the type of a symbol named sval, based current context
+// return type in {int, tuple, array, func, unknown}, no {link}
 int type_lookup(char* sval, struct symboltable* global_tb, struct symboltableStack* local_tbstk) {
     if (LOCAL_ENV) {
         struct symboltable* local_tb = top_symboltableStack(local_tbstk);
         struct symboltableRecord* record = lookup_symbol(sval, LOCAL_SCOPE, local_tb);
         if (record) {
-            fprintf(stderr, GREEN"[type_lookup]: %s is a local `%c` symbol.\n"RESET, sval, record->valuetype);
+            fprintf(stderr, GREEN"[type_lookup]: %s is a local `%c` symbol. declared in line %d\n"RESET, sval, record->valuetype, record->line);
             if (record->valuetype != VALUETYPE_LINK_TO_GLOBAL){ 
                 //if not a link to global variable, return it directly
                 return record->valuetype;
             } else {
                 // if it's a link to global variable, lookup it in global table
                 struct symboltableRecord* g_record = lookup_symbol(sval, GLOBAL_SCOPE, global_tb);
-                fprintf(stderr, GREEN"[type_lookup -> redirected]: %s is a global `%c` symbol.\n"RESET, sval, g_record->valuetype);
+                fprintf(stderr, GREEN"[type_lookup -> redirected]: %s is a global `%c` symbol. declared in line %d\n"RESET, sval, g_record->valuetype, g_record->line);
                 if (g_record) return g_record->valuetype;
             }
         }
     } else {
         struct symboltableRecord* record = lookup_symbol(sval, GLOBAL_SCOPE, global_tb);
         if (record) {
-            fprintf(stderr, GREEN"[type_lookup]: %s is a global `%c` symbol.\n"RESET, sval, record->valuetype);
+            fprintf(stderr, GREEN"[type_lookup]: %s is a global `%c` symbol.  declared in line %d\n"RESET, sval, record->valuetype, record->line);
             return record->valuetype;
         }
     }
     fprintf(stderr, RED"[type_lookup]: %s is not found in current envrionment.\n"RESET, sval);
     return -1;
+}
+
+// first check out local if possible, otherwise lookup global. if not found, return NULL
+struct symboltable* get_matched_symboltable(char* sval, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
+    if(LOCAL_ENV){
+        struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+        struct symboltableRecord* record = lookup_symbol(sval, LOCAL_SCOPE, local_tb);
+        if(record) return local_tb;
+    }
+    struct symboltableRecord* g_record = lookup_symbol(sval, GLOBAL_SCOPE, global_tb);
+    if(g_record){
+        return global_tb;
+    }
+    return NULL;
 }
 
 int check_type_in_list(int valuetype, int truth[], int length){
@@ -458,6 +473,28 @@ int check_current_scope(struct symboltable* global_tb, struct symboltableStack* 
 void mock_local_env(struct symboltable* global_tb, struct symboltableStack* local_tbstk){
     struct symboltable* tb = init_symboltable(MAX_SYMBOLTABLE_SIZE, LOCAL_SCOPE);
     push_symboltableStack(tb, local_tbstk);
+}
+
+// calclate NODETYPE_LHS depth
+int get_node_depth(struct pNode* p){
+    if (p == NULL) return 0;
+    switch (p->pnodetype)
+    {
+        case NODETYPE_SINGLE_ID_AS_LHSITEM:
+        case NODETYPE_ARRAY_REF_AS_LHSITEM:
+        case NODETYPE_TUPLE_REF_AS_LHSITEM:
+            return 1;
+        case NODETYPE_COMMA_LHSITEN_LIST:
+        case NODETYPE_LHS:{
+            int sum = 0;
+            for (int i = 0; i < p->childscount; i++){
+                sum += get_node_depth(p->childs[i]);
+            }
+            return sum;
+        }
+        default:
+            return 0;
+    }
 }
 
 // determine type of expression: if A = expr(B), then A's type can be synthesised from right hand side
@@ -519,7 +556,7 @@ int type_synthesis(struct pNode* exprnode, struct symboltable* global_tb, struct
             * 
             * expr: ID expr { $$ = newpNode(NODETYPE_FUNC_CALL_AS_EXPR, 2, newsNode($1), $2); } %prec EXPR_FUNCTION_ID
             */
-           fprintf(stderr, RED"type_synthesis for function call not implemented"RESET);
+           fprintf(stderr, RED"type_synthesis for function call, not implemented"RESET); //TODO
            exit(-1);
         }
         case NODETYPE_TUPLE_REF_AS_EXPR:{
@@ -559,7 +596,69 @@ int type_synthesis(struct pNode* exprnode, struct symboltable* global_tb, struct
     return -1;
 }
 
-void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
+// determine the lhs's type based on the way it's used.
+int type_inference(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
+    if (p == NULL) return -1;
+    switch (p->pnodetype)
+    {
+        case NODETYPE_SINGLE_ID_AS_LHSITEM:{
+            // only int, tuple, unknown are allowed as a single id in lhs. 
+            struct sNode * snode = (struct sNode *)(p->childs[0]);
+            int valuetype = type_lookup(snode->sval, global_tb, local_tbstk);
+            int truthlist[] = {VALUETYPE_TUPLE, VALUETYPE_INT, VALUETYPE_UNKNOWN};
+            check_type_in_list(valuetype, truthlist, 3); 
+            return valuetype;
+            break;
+        }
+        case NODETYPE_TUPLE_REF_AS_LHSITEM:{
+            // only tuple is allowed in tuple ref
+            struct sNode * snode = (struct sNode *)(p->childs[0]);
+            int valuetype = type_lookup(snode->sval, global_tb, local_tbstk);
+            check_type_equal(valuetype, VALUETYPE_TUPLE); 
+            return VALUETYPE_INT;
+            break;
+        }
+        case NODETYPE_ARRAY_REF_AS_LHSITEM:{
+            // only array is allowed in array ref 
+            struct sNode * snode = (struct sNode *)(p->childs[0]);
+            int valuetype = type_lookup(snode->sval, global_tb, local_tbstk);
+            check_type_equal(valuetype, VALUETYPE_ARRAY); 
+            return VALUETYPE_INT;
+            break;
+        }
+        case NODETYPE_COMMA_LHSITEN_LIST:{
+            // return the type of first lhsitem as return type
+            struct pNode * lhsnode = p->childs[1];
+            struct pNode * listnode = p->childs[2];
+            int truthlist[] = {VALUETYPE_TUPLE, VALUETYPE_INT};
+            int valuetype = type_inference(lhsnode, global_tb, local_tbstk);
+            check_type_in_list(valuetype, truthlist, 2); 
+            if (listnode){
+                type_inference(listnode, global_tb, local_tbstk);//recusively check the rest
+            }
+            return valuetype;
+            break;
+        }
+        case NODETYPE_LHS:{
+            // only check the type of first lhsitem
+            struct pNode * lhsitem = p->childs[0];
+            struct pNode * listnode = p->childs[1];
+            if (listnode){
+                type_inference(listnode, global_tb, local_tbstk);//recusively check the rest
+                return VALUETYPE_TUPLE;
+            } else {
+                return type_inference(lhsitem, global_tb, local_tbstk);
+            }
+            break;
+        }
+        default: {
+            printf("visit unsupported node type for type_inference: %d\n", p->pnodetype);
+        }
+    }
+    return -1;
+}
+
+void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
     if (p == NULL) return;
     switch(p->pnodetype){
         case NODETYPE_ROOT_INPUT:{
@@ -568,9 +667,40 @@ void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltab
             break;
         }
         case NODETYPE_SDD_LIST:
-        case NODETYPE_DECL_AS_SDD:{
+        case NODETYPE_DECL_AS_SDD:
+        case NODETYPE_STATEMENT_AS_SDD:{
             for (int i = 0; i < p->childscount; i++)
                 treewalker(p->childs[i], global_tb, local_tbstk);
+            break;
+        }
+        case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT:{
+            //lhs OP_ASSIGN expr OP_SEMI
+            struct pNode* lhsnode = p->childs[0]; 
+            struct pNode* exprnode = p->childs[2];
+            int lhstype = type_inference(lhsnode, global_tb, local_tbstk);
+            int lhsdepth = get_node_depth(lhsnode);
+            int exprtype = type_synthesis(exprnode, global_tb, local_tbstk);
+            int truthlist[] = {VALUETYPE_INT, VALUETYPE_TUPLE};
+            check_type_in_list(exprtype, truthlist, 2); // only {int,tuple} are allowed assign, {array, func, unknown} forbidden
+            if (lhsdepth > 1) {
+                fprintf(stderr,RED"todo, multiple assign statement, not implemented yet\n"RESET); //TODO
+                exit(999);
+            }
+            // lhs has depth 1, if lhs is unknown type, update type. otherwise check equal.
+            if (lhstype == VALUETYPE_UNKNOWN) {
+                struct pNode* lhsitem = p->childs[0];
+                struct pNode* singleid_as_lhsitem = lhsitem->childs[0];
+                struct sNode* snode = (struct sNode*) singleid_as_lhsitem->childs[0];
+                struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+                if (matched_tb) {
+                    set_symbol_type(snode->sval, exprtype, matched_tb->scope, snode->line, matched_tb);
+                } else{
+                    fprintf(stderr, RED"[treewalker] assign unknown value failed. %d"RESET, p->line);
+                    exit(999);
+                }
+            } else {
+                check_type_equal(lhstype, exprtype);
+            }
             break;
         }
         case NODETYPE_NO_EXPR_LOCAL_DECL:{
@@ -586,7 +716,6 @@ void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltab
         }
         case NODETYPE_LOCAL_DECL:{
             // only declare local id in local env
-            mock_local_env(global_tb, local_tbstk);//TODO DELETE
             if (check_current_scope(global_tb, local_tbstk, LOCAL_SCOPE) == 0){
                 fprintf(stderr, RED"[treewalker] can't declare local id with expr outside local env. in line %d"RESET, p->line);
                 exit(999);
@@ -595,6 +724,8 @@ void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltab
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
             struct pNode * exprnode = p->childs[3]; 
             int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
+            int truthlist[] = {VALUETYPE_INT, VALUETYPE_TUPLE};
+            check_type_in_list(valuetype, truthlist, 2);
             declare_symbol(snode->sval, valuetype, LOCAL_SCOPE, snode->line,local_tb);
             break;
         }
@@ -613,7 +744,22 @@ void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltab
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
             struct pNode * exprnode = p->childs[3]; 
             int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
+            int truthlist[] = {VALUETYPE_INT, VALUETYPE_TUPLE};
+            check_type_in_list(valuetype, truthlist, 2);
             declare_symbol(snode->sval, valuetype, GLOBAL_SCOPE, snode->line, global_tb);
+            break;
+        }
+        case NODETYPE_ARRAY_DECL:
+        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC:{
+            //KW_ARRAY ID OP_LBRAK expr OP_DOTDOT expr OP_RBRAK OP_SEMI 
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            struct pNode * exprnode_beg = p->childs[3];
+            struct pNode * exprnode_end = p->childs[5];
+            check_type_equal(type_lookup(snode->sval, global_tb, local_tbstk), VALUETYPE_UNKNOWN);
+            check_type_equal(type_synthesis(exprnode_beg, global_tb, local_tbstk), VALUETYPE_INT);
+            check_type_equal(type_synthesis(exprnode_end, global_tb, local_tbstk), VALUETYPE_INT);
+            struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+            set_symbol_type(snode->sval, VALUETYPE_ARRAY, matched_tb->scope, snode->line, matched_tb);
             break;
         }
         default: printf("visit unsupported node type for treewalker: %d\n", p->pnodetype);
