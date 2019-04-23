@@ -234,7 +234,8 @@ void visualize(struct pNode *p, int level){
         "SDD_LIST",                                 //1072
         "ROOT_INPUT",                               //1073
         "NO_EXPR_GLOBAL_DECL",                      //1074
-        "NO_EXPR_LOCAL_DECL"                        //1075
+        "NO_EXPR_LOCAL_DECL",                       //1075
+        "ITER_ID",                                  //1076
     };
 
     switch(p->pnodetype) {
@@ -304,7 +305,8 @@ void visualize(struct pNode *p, int level){
         case NODETYPE_SDD_LIST:
         case NODETYPE_ROOT_INPUT:
         case NODETYPE_NO_EXPR_GLOBAL_DECL:
-        case NODETYPE_NO_EXPR_LOCAL_DECL:{
+        case NODETYPE_NO_EXPR_LOCAL_DECL:
+        case NODETYPE_ITER_ID:{
             printManySpace(level*4); 
             char* nodestr = nodetype2nodestr[p->pnodetype-NODETYPE_ID];
             printf("[%s] (@line %d)\n", nodestr, p->line);
@@ -370,7 +372,8 @@ void treefree(struct pNode *p){
         case NODETYPE_SDD_LIST:
         case NODETYPE_ROOT_INPUT:
         case NODETYPE_NO_EXPR_GLOBAL_DECL:
-        case NODETYPE_NO_EXPR_LOCAL_DECL:{
+        case NODETYPE_NO_EXPR_LOCAL_DECL:
+        case NODETYPE_ITER_ID:{
             for (int i = 0; i < p->childscount; i++){
                 treefree(p->childs[i]);
             }
@@ -668,7 +671,12 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         }
         case NODETYPE_SDD_LIST:
         case NODETYPE_DECL_AS_SDD:
-        case NODETYPE_STATEMENT_AS_SDD:{
+        case NODETYPE_STATEMENT_AS_SDD:
+        case NODETYPE_STATEMENT_LIST:
+        case NODETYPE_WHILE_STATEMENT:
+        case NODETYPE_IF_STATEMENT:
+        case NODETYPE_IF_ELSE_STATEMENT:
+        case NODETYPE_PLACEHOLDER:{
             for (int i = 0; i < p->childscount; i++)
                 treewalker(p->childs[i], global_tb, local_tbstk);
             break;
@@ -695,12 +703,50 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 if (matched_tb) {
                     set_symbol_type(snode->sval, exprtype, matched_tb->scope, snode->line, matched_tb);
                 } else{
-                    fprintf(stderr, RED"[treewalker] assign unknown value failed. %d"RESET, p->line);
+                    fprintf(stderr, RED"[treewalker] assign unknown value failed. in line %d"RESET, p->line);
                     exit(999);
                 }
             } else {
                 check_type_equal(lhstype, exprtype);
             }
+            break;
+        }
+        case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT:{
+            struct pNode* left_lhsnode = p->childs[0]; 
+            struct pNode* right_lhsnode = p->childs[2];
+            int left_lhstype = type_inference(left_lhsnode, global_tb, local_tbstk);
+            int right_lhstype = type_inference(right_lhsnode, global_tb, local_tbstk);
+            check_type_equal(left_lhstype, right_lhstype);
+            if(get_node_depth(left_lhsnode)!=get_node_depth(right_lhsnode)){
+                fprintf(stderr, RED"[treewalker] exchange failed. unequal length. in line %d"RESET, p->line);
+                exit(999);
+            }
+            break;
+        }
+        case NODETYPE_FOREACH_RANGE_STATEMENT:{
+            // the temp iterator id is treated as a temprary global id, will remove it after this statement
+            struct sNode* snode = (struct sNode*) p->childs[1]->childs[0];
+            struct pNode* rangenode = p->childs[3];
+            struct pNode* endfornode = p->childs[7];
+            declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb);
+            check_type_equal(type_synthesis(rangenode->childs[0], global_tb, local_tbstk), VALUETYPE_INT);
+            check_type_equal(type_synthesis(rangenode->childs[2], global_tb, local_tbstk), VALUETYPE_INT);
+            for (int i = 4; i < p->childscount; i++)
+                treewalker(p->childs[i], global_tb, local_tbstk);
+            remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
+            break;
+        }
+        case NODETYPE_FOREACH_ARRAYID_STATEMENT:{
+            // the temp iterator id is treated as a temprary global id, will remove it after this statement
+            struct sNode* snode = (struct sNode*) p->childs[1]->childs[0];
+            struct pNode* arrayidnode = p->childs[3];
+            struct sNode* arraynamenode = (struct sNode*) arrayidnode->childs[0];
+            struct pNode* endfornode = p->childs[7];
+            declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb);
+            check_type_equal(type_lookup(arraynamenode->sval, global_tb, local_tbstk), VALUETYPE_ARRAY);
+            for (int i = 4; i < p->childscount; i++)
+                treewalker(p->childs[i], global_tb, local_tbstk);
+            remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
             break;
         }
         case NODETYPE_NO_EXPR_LOCAL_DECL:{

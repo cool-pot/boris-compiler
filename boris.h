@@ -76,6 +76,7 @@
 #define NODETYPE_ROOT_INPUT 1073
 #define NODETYPE_NO_EXPR_GLOBAL_DECL 1074
 #define NODETYPE_NO_EXPR_LOCAL_DECL 1075
+#define NODETYPE_ITER_ID 1076
 
 /* Nodes in the Parse Tree */
 struct pNode {

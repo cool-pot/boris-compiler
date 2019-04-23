@@ -75,6 +75,7 @@
 %type<pnode> sd_list
 %type<pnode> sd
 %type<pnode> decl
+%type<pnode> iter_id
 %type<pnode> array_id
 %type<pnode> elsif_sentence_list
 %type<pnode> else_sentence
@@ -105,7 +106,7 @@
 %nonassoc EXPR_ARRAY_ID;
 %nonassoc EXPR_INT;
 
-input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); visualize($$, 0); struct symboltable* global_tb = init_symboltable(MAX_SYMBOLTABLE_SIZE, GLOBAL_SCOPE); struct symboltableStack* local_tbstk= init_symboltableStack(MAX_SYMBOLTABLE_STACK_SIZE); treewalker($$, global_tb, local_tbstk); treefree($$);}
+input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); visualize($$, 0); struct symboltable* global_tb = init_symboltable(5, GLOBAL_SCOPE); struct symboltableStack* local_tbstk= init_symboltableStack(3); treewalker($$, global_tb, local_tbstk); print_symboltable(global_tb); treefree($$);}
 ;
 
 sdd_list: /* empty */ { $$ = NULL; } 
@@ -162,10 +163,13 @@ statement: lhs OP_ASSIGN expr OP_SEMI { $$ = newpNode(NODETYPE_LHS_ASSIGN_EXPR_A
         | KW_WHILE bool_expr KW_DO statement_list KW_END KW_WHILE { $$ = newpNode(NODETYPE_WHILE_STATEMENT, 6, newplaceholderNode(KW_WHILE), $2, newplaceholderNode(KW_DO), $4, newplaceholderNode(KW_END), newplaceholderNode(KW_WHILE));}
         | KW_IF bool_expr KW_THEN statement_list elsif_sentence_list KW_END KW_IF { $$ = newpNode(NODETYPE_IF_STATEMENT, 7, newplaceholderNode(KW_IF), $2, newplaceholderNode(KW_THEN), $4, $5, newplaceholderNode(KW_END), newplaceholderNode(KW_IF));}
         | KW_IF bool_expr KW_THEN statement_list elsif_sentence_list else_sentence KW_END KW_IF { $$ = newpNode(NODETYPE_IF_ELSE_STATEMENT, 8, newplaceholderNode(KW_IF), $2, newplaceholderNode(KW_THEN), $4, $5, $6, newplaceholderNode(KW_END), newplaceholderNode(KW_IF));}
-        | KW_FOREACH ID KW_IN range KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_RANGE_STATEMENT, 8, newplaceholderNode(KW_FOREACH), newsNode($2), newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
-        | KW_FOREACH ID KW_IN array_id KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_ARRAYID_STATEMENT, 8, newplaceholderNode(KW_FOREACH), newsNode($2), newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
+        | KW_FOREACH iter_id KW_IN range KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_RANGE_STATEMENT, 8, newplaceholderNode(KW_FOREACH), $2, newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
+        | KW_FOREACH iter_id KW_IN array_id KW_DO statement_list KW_END KW_FOR {$$ = newpNode(NODETYPE_FOREACH_ARRAYID_STATEMENT, 8, newplaceholderNode(KW_FOREACH), $2, newplaceholderNode(KW_IN), $4, newplaceholderNode(KW_DO), $6, newplaceholderNode(KW_END), newplaceholderNode(KW_FOR));}
         | KW_RETURN expr OP_SEMI { $$ = newpNode(NODETYPE_RETURN_STATEMENT, 3, newplaceholderNode(KW_RETURN), $2, newplaceholderNode(OP_SEMI));}
         | KW_PRINT expr OP_SEMI { $$ = newpNode(NODETYPE_PRINT_STATEMENT, 3, newplaceholderNode(KW_PRINT), $2, newplaceholderNode(OP_SEMI));}
+;
+
+iter_id: ID {$$ = newpNode(NODETYPE_ITER_ID, 1, newsNode($1));}
 ;
 
 array_id: ID { $$ = newpNode(NODETYPE_ARRAY_ID, 1, newsNode($1));} 

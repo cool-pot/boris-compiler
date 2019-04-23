@@ -290,25 +290,24 @@ void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
                     printf(RED"[symbol table error]`%s`, internal error, remove unsupported valuetype %c"RESET, sval, record->valuetype);
                     exit(984);
             }
-
-            // verbose print
-            if (SYMBOLTABLE_VERBOSE) {
-                int valuetype = record->valuetype;
-                char symboltype[20];
-                char symbolscope[7];
-                if (valuetype == VALUETYPE_INT) { strcpy(symboltype, "int"); } 
-                else if (valuetype == VALUETYPE_FUNC) { strcpy(symboltype, "func"); } 
-                else if (valuetype == VALUETYPE_TUPLE) { strcpy(symboltype, "tuple"); } 
-                else if (valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
-                else if (valuetype == VALUETYPE_UNKNOWN) { strcpy(symboltype, "unknown"); }
-                else if (valuetype == VALUETYPE_LINK_TO_GLOBAL) { strcpy(symboltype, "link_to_global"); }
-                if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
-                else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
-                fprintf(stderr, GREEN"[symbol table remove symbol]remove %s %s symbol `%s` in line %d.\n"RESET, symbolscope, symboltype, sval, line);
-            }
-
-            free(record);
         }
+        // verbose print
+        if (SYMBOLTABLE_VERBOSE) {
+            int valuetype = record->valuetype;
+            char symboltype[20];
+            char symbolscope[7];
+            if (valuetype == VALUETYPE_INT) { strcpy(symboltype, "int"); } 
+            else if (valuetype == VALUETYPE_FUNC) { strcpy(symboltype, "func"); } 
+            else if (valuetype == VALUETYPE_TUPLE) { strcpy(symboltype, "tuple"); } 
+            else if (valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
+            else if (valuetype == VALUETYPE_UNKNOWN) { strcpy(symboltype, "unknown"); }
+            else if (valuetype == VALUETYPE_LINK_TO_GLOBAL) { strcpy(symboltype, "link_to_global"); }
+            if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
+            else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
+            fprintf(stderr, GREEN"[symbol table remove symbol]remove %s %s symbol `%s` in line %d.\n"RESET, symbolscope, symboltype, sval, line);
+        }
+        //make it invalid
+        record->valid  = 0;
     }
     return;
 }
