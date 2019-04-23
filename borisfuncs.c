@@ -13,6 +13,8 @@
 # include "boris.h"
 # include "boris.tab.h" // yylloc definition, token number
 
+# define LOCAL_ENV (local_tbstk->current_length > 0)
+
 
 void yyerror(char* s, ...){
     va_list ap;
@@ -390,41 +392,164 @@ void treefree(struct pNode *p){
     }
 }
 
-// tree walker and type [synthesis, inference]
-void check_type_in_list(int valuetype, int truth[], int length){
+/* 
+ * Following: tree walker and type [synthesis, inference]
+ */
+
+// look up the type of a symbol named sval, based current context
+int type_lookup(char* sval, struct symboltable* global_tb, struct symboltableStack* local_tbstk) {
+    if (LOCAL_ENV) {
+        struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+        struct symboltableRecord* record = lookup_symbol(sval, LOCAL_SCOPE, local_tb);
+        if (record) {
+            fprintf(stderr, GREEN"[type_lookup]: %s is a local `%c` symbol.\n"RESET, sval, record->valuetype);
+            if (record->valuetype != VALUETYPE_LINK_TO_GLOBAL){ 
+                //if not a link to global variable, return it directly
+                return record->valuetype;
+            } else {
+                // if it's a link to global variable, lookup it in global table
+                struct symboltableRecord* g_record = lookup_symbol(sval, GLOBAL_SCOPE, global_tb);
+                fprintf(stderr, GREEN"[type_lookup -> redirected]: %s is a global `%c` symbol.\n"RESET, sval, g_record->valuetype);
+                if (g_record) return g_record->valuetype;
+            }
+        }
+    } else {
+        struct symboltableRecord* record = lookup_symbol(sval, GLOBAL_SCOPE, global_tb);
+        if (record) {
+            fprintf(stderr, GREEN"[type_lookup]: %s is a global `%c` symbol.\n"RESET, sval, record->valuetype);
+            return record->valuetype;
+        }
+    }
+    fprintf(stderr, RED"[type_lookup]: %s is not found in current envrionment.\n"RESET, sval);
+    return -1;
+}
+
+int check_type_in_list(int valuetype, int truth[], int length){
     int equal = 0;
     for (int i = 0; i < length; i++){
         if (valuetype == truth[i]) equal++;
     }
     if (equal == 0) {
-        fprintf(stderr, YELLOW"type conflicts `%c`, should be in [", valuetype);
+        fprintf(stderr, RED"[check_type_in_list]type conflicts `%c`(%d), should be in [", valuetype, valuetype);
         for (int i = 0; i < length; i++){
             if (i == length-1) fprintf(stderr, "`%c`", truth[i]);
             else fprintf(stderr, "`%c`,", truth[i]);
         }
         fprintf(stderr, "]\n"RESET);
     }
+    return equal;
 }
 
-void check_type_equal(int valuetype, int truth){
+int check_type_equal(int valuetype, int truth){
     int trutharray[] = {truth};
-    check_type_in_list(valuetype, trutharray, 1);
+    return check_type_in_list(valuetype, trutharray, 1);
 }
 
-int type_synthesis(struct pNode* exprnode){
+int check_current_scope(struct symboltable* global_tb, struct symboltableStack* local_tbstk, int expected_scope){
+    int current_scope = LOCAL_ENV ? LOCAL_SCOPE : GLOBAL_SCOPE;
+    if (current_scope != expected_scope) {
+        fprintf(stderr, RED"[check_current_scope]: scope not expected. get `%c`, should be `%c`.\n"RESET, current_scope, expected_scope);
+        return 0;
+    }
+    return 1;
+}
+
+// test prpose only
+void mock_local_env(struct symboltable* global_tb, struct symboltableStack* local_tbstk){
+    struct symboltable* tb = init_symboltable(MAX_SYMBOLTABLE_SIZE, LOCAL_SCOPE);
+    push_symboltableStack(tb, local_tbstk);
+}
+
+// determine type of expression: if A = expr(B), then A's type can be synthesised from right hand side
+int type_synthesis(struct pNode* exprnode, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
     if (exprnode == NULL) return -1;
     switch(exprnode->pnodetype){
-        case NODETYPE_SINGLE_INT_AS_EXPR:{
+        case NODETYPE_EXPR_COMMA_EXPR:{
+            /* For expr including ',', make sure left and right are both int or tuple
+             *
+             * expr: expr OP_COMMA expr { $$ = newpNode(NODETYPE_EXPR_COMMA_EXPR, 3, $1, newplaceholderNode(OP_COMMA), $3);}
+             */
+            int left_valuetype = type_synthesis(exprnode->childs[0], global_tb, local_tbstk);
+            int right_valuetype = type_synthesis(exprnode->childs[2], global_tb, local_tbstk);
+            int truthlist[] = {VALUETYPE_TUPLE, VALUETYPE_INT};
+            check_type_in_list(left_valuetype, truthlist, 2); 
+            check_type_in_list(right_valuetype, truthlist, 2); 
+            return VALUETYPE_TUPLE;
+            break;
+        }
+        case NODETYPE_EXPR_MINUS_EXPR:
+        case NODETYPE_EXPR_PLUS_EXPR:
+        case NODETYPE_EXPR_DIV_EXPR:
+        case NODETYPE_EXPR_MULT_EXPR:{
+            /* For expr including `+`,`-`,`*`,`/` make sure left and right are both int
+             *
+             * expr: expr OP_MINUS expr { $$ = newpNode(NODETYPE_EXPR_MINUS_EXPR, 3, $1, newplaceholderNode(OP_MINUS), $3);}
+             *  | expr OP_PLUS expr { $$ = newpNode(NODETYPE_EXPR_PLUS_EXPR, 3, $1, newplaceholderNode(OP_PLUS), $3);}
+             *  | expr OP_DIV expr { $$ = newpNode(NODETYPE_EXPR_DIV_EXPR, 3, $1, newplaceholderNode(OP_DIV), $3);}
+             *  | expr OP_MULT expr { $$ = newpNode(NODETYPE_EXPR_MULT_EXPR, 3, $1, newplaceholderNode(OP_MULT), $3);}
+             */
+            int left_valuetype = type_synthesis(exprnode->childs[0], global_tb, local_tbstk);
+            int right_valuetype = type_synthesis(exprnode->childs[2], global_tb, local_tbstk);
+            check_type_equal(left_valuetype, VALUETYPE_INT); 
+            check_type_equal(right_valuetype, VALUETYPE_INT); 
             return VALUETYPE_INT;
             break;
         }
-        case NODETYPE_EXPR_COMMA_EXPR:{
-            int left_valuetype = type_synthesis(exprnode->childs[0]);
-            int right_valuetype = type_synthesis(exprnode->childs[2]);
-            int truth[] = {VALUETYPE_TUPLE, VALUETYPE_INT};
-            check_type_in_list(left_valuetype, truth, 2); 
-            check_type_in_list(right_valuetype, truth, 2); 
-            return VALUETYPE_TUPLE;
+        case NODETYPE_LPAR_EXPR_RPAR:{
+           /* Return no matter whatever is a type of the inside expression. No type check here. 
+            *
+            * expr: OP_LPAR expr OP_RPAR { $$ = newpNode(NODETYPE_LPAR_EXPR_RPAR, 3, newplaceholderNode(OP_LPAR), $2, newplaceholderNode(OP_RPAR));} %prec EXPR_LPAR_RPAR_INCLUSICE
+            */
+           int valuetype = type_synthesis(exprnode->childs[1], global_tb, local_tbstk);
+           return valuetype;
+           break;
+        }
+        case NODETYPE_SINGLE_ID_AS_EXPR:{
+           /* Return no matter whatever is a type of the in the . No type check here. 
+            *
+            * expr: ID { $$ = newpNode(NODETYPE_SINGLE_ID_AS_EXPR, 1, newsNode($1));} %prec EXPR_NORMAL_ID
+            */
+           struct sNode * snode = (struct sNode *)(exprnode->childs[0]);
+           int valuetype = type_lookup(snode->sval, global_tb, local_tbstk);
+           return valuetype;
+           break;
+        }
+        case NODETYPE_FUNC_CALL_AS_EXPR:{
+            /* TODO
+            * 
+            * expr: ID expr { $$ = newpNode(NODETYPE_FUNC_CALL_AS_EXPR, 2, newsNode($1), $2); } %prec EXPR_FUNCTION_ID
+            */
+           fprintf(stderr, RED"type_synthesis for function call not implemented"RESET);
+           exit(-1);
+        }
+        case NODETYPE_TUPLE_REF_AS_EXPR:{
+            /* For expr including `.` make sure left is a id for tuple.
+            *
+            * expr: ID OP_DOT INT_LIT { $$ = newpNode(NODETYPE_TUPLE_REF_AS_EXPR, 3, newsNode($1), newplaceholderNode(OP_DOT), newiNode($3)); } %prec EXPR_TUPLE_ID
+            */
+            struct sNode * snode = (struct sNode *)(exprnode->childs[0]);
+            int valuetype = type_lookup(snode->sval, global_tb, local_tbstk);
+            check_type_equal(valuetype, VALUETYPE_TUPLE);
+            return VALUETYPE_INT;
+        }
+        case NODETYPE_ARRAY_REF_AS_EXPR:{
+            /* For expr including `[ ]` make sure left is a id for array. right is a int expr
+            *
+            * expr: ID OP_LBRAK expr OP_RBRAK { $$ = newpNode(NODETYPE_ARRAY_REF_AS_EXPR, 4, newsNode($1), newplaceholderNode(OP_LBRAK), $3, newplaceholderNode(OP_RBRAK)); } %prec EXPR_ARRAY_ID
+            */
+            struct sNode * snode = (struct sNode *)(exprnode->childs[0]);
+            int left_valuetype = type_lookup(snode->sval, global_tb, local_tbstk);
+            int right_valuetype = type_synthesis(exprnode->childs[2], global_tb, local_tbstk);
+            check_type_equal(left_valuetype, VALUETYPE_ARRAY);
+            check_type_equal(right_valuetype, VALUETYPE_INT);
+           
+        }
+        case NODETYPE_SINGLE_INT_AS_EXPR:{
+            /* Base case.
+            *
+            * expr: INT_LIT { $$ = newpNode(NODETYPE_SINGLE_INT_AS_EXPR, 1, newiNode($1));} %prec EXPR_INT
+            */
+            return VALUETYPE_INT;
             break;
         }
         default: {
@@ -449,20 +574,45 @@ void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltab
             break;
         }
         case NODETYPE_NO_EXPR_LOCAL_DECL:{
+            // only declare local id with no expr in local env
+            if (check_current_scope(global_tb, local_tbstk, LOCAL_SCOPE) == 0){
+                fprintf(stderr, RED"[treewalker] can't declare local id with no expr outside local env. in line %d"RESET, p->line);
+                exit(999);
+            }
             struct symboltable* local_tb = top_symboltableStack(local_tbstk);
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
             declare_symbol(snode->sval, VALUETYPE_UNKNOWN, LOCAL_SCOPE, snode->line, local_tb);
             break;
         }
+        case NODETYPE_LOCAL_DECL:{
+            // only declare local id in local env
+            mock_local_env(global_tb, local_tbstk);//TODO DELETE
+            if (check_current_scope(global_tb, local_tbstk, LOCAL_SCOPE) == 0){
+                fprintf(stderr, RED"[treewalker] can't declare local id with expr outside local env. in line %d"RESET, p->line);
+                exit(999);
+            }
+            struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            struct pNode * exprnode = p->childs[3]; 
+            int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
+            declare_symbol(snode->sval, valuetype, LOCAL_SCOPE, snode->line,local_tb);
+            break;
+        }
         case NODETYPE_NO_EXPR_GLOBAL_DECL:{
+            // declare global id with no expr in any env
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
             declare_symbol(snode->sval, VALUETYPE_UNKNOWN, GLOBAL_SCOPE, snode->line, global_tb);
             break;
         }
         case NODETYPE_GLOBAL_DECL:{
+            // only declare global id with expr in global env
+            if (check_current_scope(global_tb, local_tbstk, GLOBAL_SCOPE) == 0){
+                fprintf(stderr, RED"[treewalker] can't declare global id with expr outside global env. in line %d"RESET, p->line);
+                exit(999);
+            }
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
             struct pNode * exprnode = p->childs[3]; 
-            int valuetype = type_synthesis(exprnode);
+            int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
             declare_symbol(snode->sval, valuetype, GLOBAL_SCOPE, snode->line, global_tb);
             break;
         }
