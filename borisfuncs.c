@@ -712,6 +712,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             break;
         }
         case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT:{
+            //left and right should have the same type, and same depth
             struct pNode* left_lhsnode = p->childs[0]; 
             struct pNode* right_lhsnode = p->childs[2];
             int left_lhstype = type_inference(left_lhsnode, global_tb, local_tbstk);
@@ -747,6 +748,29 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             for (int i = 4; i < p->childscount; i++)
                 treewalker(p->childs[i], global_tb, local_tbstk);
             remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
+            break;
+        }
+        case NODETYPE_PRINT_STATEMENT:{
+            // when print a expr, the type of expr should be known and in {arrat, tuple, int}
+            struct pNode* exprnode = p->childs[1];
+            int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
+            int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE};
+            check_type_in_list(valuetype, truthlist, 3);
+            break;
+        }
+        case NODETYPE_RETURN_STATEMENT:{
+            // when return a expr, the type of expr should be known and in {tuple, int}
+            // must be in a local enviroment
+            if (LOCAL_ENV){
+                struct pNode* exprnode = p->childs[1];
+                int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
+                int truthlist[] = {VALUETYPE_INT, VALUETYPE_TUPLE};
+                check_type_in_list(valuetype, truthlist, 2);
+                pop_symboltableStack(local_tbstk);
+            } else {
+                fprintf(stderr,RED"can't use return statementout side local enviroment.\n"RESET);
+                exit(999);
+            }
             break;
         }
         case NODETYPE_NO_EXPR_LOCAL_DECL:{
