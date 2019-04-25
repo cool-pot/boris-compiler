@@ -560,8 +560,17 @@ int type_synthesis(struct pNode* exprnode, struct symboltable* global_tb, struct
             * 
             * expr: ID expr { $$ = newpNode(NODETYPE_FUNC_CALL_AS_EXPR, 2, newsNode($1), $2); } %prec EXPR_FUNCTION_ID
             */
-           fprintf(stderr, RED"type_synthesis for function call, not implemented"RESET); //TODO
-           exit(-1);
+           struct sNode * snode = (struct sNode *)(exprnode->childs[0]);
+           struct symboltableRecord* record = lookup_symbol(snode->sval, GLOBAL_SCOPE, global_tb);
+           if (record == NULL || record->valuetype != VALUETYPE_FUNC){
+               fprintf(stderr, RED"type_synthesis meet undefined function `%s`"RESET, snode->sval); //TODO
+               exit(999);
+           }
+           struct symboltableRecordFunction* function = (struct symboltableRecordFunction*)record->value;
+           int input_valuetype = type_synthesis(exprnode->childs[1], global_tb, local_tbstk);
+           check_type_equal(input_valuetype, function->formal_parameter_valuetype);
+           return function->return_valuetype;
+           break;
         }
         case NODETYPE_TUPLE_REF_AS_EXPR:{
             /* For expr including `.` make sure left is a id for tuple.
@@ -662,6 +671,179 @@ int type_inference(struct pNode* p, struct symboltable* global_tb, struct symbol
     return -1;
 }
 
+// helper function for `determine_formal_parameter_valuetype`
+// return if the sval has been referenced as a tuple in p
+int _any_tuple_reference(struct pNode* p, char* sval){
+    if(p == NULL){
+        return 0;
+    }
+    switch (p->pnodetype)
+    {
+        case NODETYPE_TUPLE_REF_AS_EXPR:
+        case NODETYPE_TUPLE_REF_AS_LHSITEM:{
+            struct sNode * snode = (struct sNode *)(p->childs[0]);
+            if(strcmp(snode->sval, sval)==0) return 1;
+            break;
+        }
+        default:{
+            for (int i = 0; i < p->childscount; i++){
+                if(_any_tuple_reference(p->childs[i], sval)) return 1;
+            }
+            break;
+        }
+    }
+    return 0;
+}
+
+// no side effects, default is int
+// if there are any tuple reference of formal_para, then formal_para is a tuple
+int determine_formal_parameter_valuetype(struct pNode* p){
+    if (p == NULL || p->pnodetype != NODETYPE_FUNC_DEFN){
+        fprintf(stderr, RED"[determine_formal_parameter_valuetype] bad input node. in line %d"RESET, p->line);
+        exit(999);
+    }
+    struct sNode * formal_parameter_name = (struct sNode *)(p->childs[3]);
+    if (_any_tuple_reference(p, formal_parameter_name->sval)){
+        return VALUETYPE_TUPLE;
+    }
+    return VALUETYPE_INT;
+}
+
+
+// helper function for `determine_return_valuetype`.
+// if no return statement, return 0.
+// otherwise return the the type expr of first return statement in p.
+// should be a tree structure included in non-terminal `body`.
+// will only do minimun type checking
+int _get_first_return_statement_type(struct pNode* p, struct symboltable* global_tb,  struct symboltableStack* local_tbstk){
+    if (p == NULL) return 0;
+    if (check_current_scope(global_tb, local_tbstk, LOCAL_SCOPE) == 0){
+        fprintf(stderr, RED"[defn node error] in line %d"RESET, p->line);
+        exit(999);
+    }
+    // now the following is in a local env
+    // do declarations in local_tb only
+    // global_tb is treated as read only
+    switch (p->pnodetype)
+    {   
+        //return nodes
+        case NODETYPE_RETURN_STATEMENT:{
+            struct pNode* exprnode = p->childs[1];
+            return type_synthesis(exprnode, global_tb, local_tbstk);
+            break;
+        }
+        //decl nodes
+        case NODETYPE_NO_EXPR_LOCAL_DECL:{
+            struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            declare_symbol(snode->sval, VALUETYPE_UNKNOWN, LOCAL_SCOPE, snode->line, local_tb);
+            break;
+        }
+        case NODETYPE_LOCAL_DECL:{
+            // only declare local id in local env
+            struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            struct pNode * exprnode = p->childs[3]; 
+            int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
+            int truthlist[] = {VALUETYPE_INT, VALUETYPE_TUPLE};
+            check_type_in_list(valuetype, truthlist, 2);
+            declare_symbol(snode->sval, valuetype, LOCAL_SCOPE, snode->line,local_tb);
+            break;
+        }
+        case NODETYPE_NO_EXPR_GLOBAL_DECL:{
+            struct sNode * snode = (struct sNode *)(p->childs[1]);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, GLOBAL_SCOPE, global_tb);
+            struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+            if (record != NULL) {
+                int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE}; 
+                check_type_in_list(record->valuetype, truthlist, 3);
+                declare_symbol(snode->sval, VALUETYPE_LINK_TO_GLOBAL, LOCAL_SCOPE, snode->line, local_tb);
+            } else {
+                fprintf(stderr, RED"[defn node error] can't access unknown global id in local env. in line %d"RESET, p->line);
+                exit(999);
+            }
+            break;
+        }
+        case NODETYPE_GLOBAL_DECL:{
+            fprintf(stderr, RED"[defn node error] global decl with expr in defn is not allowed. in line %d"RESET, p->line);
+            exit(999);
+        }
+        case NODETYPE_ARRAY_DECL:
+        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC:{
+            //KW_ARRAY ID OP_LBRAK expr OP_DOTDOT expr OP_RBRAK OP_SEMI 
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, LOCAL_SCOPE, local_tb);
+            if (record != NULL) {
+                check_type_equal(record->valuetype, VALUETYPE_UNKNOWN);
+                declare_symbol(snode->sval, VALUETYPE_ARRAY, LOCAL_SCOPE, snode->line, local_tb);
+            } else {
+                fprintf(stderr, RED"[defn node error] array set error, id not found in local env%d"RESET, p->line);
+                exit(999);
+            }
+            break;
+        }
+        case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT:{
+            struct pNode* lhsnode = p->childs[0]; 
+            struct pNode* exprnode = p->childs[2];
+            struct symboltable* local_tb = top_symboltableStack(local_tbstk);
+            int lhsdepth = get_node_depth(lhsnode);
+            if (lhsdepth > 1) {
+                fprintf(stderr,RED"todo, multiple assign statement, not implemented yet\n"RESET); //TODO
+                exit(999);
+            }
+            struct sNode * snode = (struct sNode *)(lhsnode->childs[0]->childs[0]); 
+            struct symboltableRecord* record = lookup_symbol(snode->sval, LOCAL_SCOPE, local_tb);
+            if (record != NULL) {
+                check_type_equal(record->valuetype, VALUETYPE_UNKNOWN);
+                int exprtype = type_synthesis(exprnode, global_tb, local_tbstk);
+                set_symbol_type(snode->sval, exprtype, LOCAL_SCOPE, snode->line, local_tb);
+            } else{
+                fprintf(stderr,RED"global id `%s` are read-only inside a function\n"RESET, snode->sval); //TODO
+                print_symboltable(local_tb);
+                exit(999);
+            }
+            break;
+        }
+        default:
+        {
+            for (int i = 0; i < p->childscount; i++){
+                int first_return = _get_first_return_statement_type(p->childs[i], global_tb, local_tbstk);
+                if (first_return) return first_return;
+            }
+            break;
+        }
+    }
+    return 0;   
+}
+
+// no side effects, default is void
+// make a simulated run to checkout the type.
+// will use the expr of first return statement to determine type
+int determine_return_valuetype(struct pNode* p, int formal_paramter_valuetype, struct symboltable* global_tb){
+    if (p == NULL || p->pnodetype != NODETYPE_FUNC_DEFN){
+        fprintf(stderr, RED"[determine_return_valuetype] bad input node. in line %d"RESET, p->line);
+        exit(999);
+    }
+    // set up a simulated local symboltable
+    struct symboltableStack* simualated_local_tbstk = init_symboltableStack(MAX_SYMBOLTABLE_STACK_SIZE);
+    struct symboltable* tb = init_symboltable(MAX_SYMBOLTABLE_SIZE, LOCAL_SCOPE);
+    push_symboltableStack(tb, simualated_local_tbstk);
+    // declare formal_parameter in simulated local symboltable 
+    struct sNode * formal_parameter_name = (struct sNode *)(p->childs[3]);
+    declare_symbol(formal_parameter_name->sval, formal_paramter_valuetype, LOCAL_SCOPE, formal_parameter_name->line, top_symboltableStack(simualated_local_tbstk));
+    // determine the return type here
+    int return_type = _get_first_return_statement_type(p, global_tb, simualated_local_tbstk);
+    // clean up
+    pop_symboltableStack(simualated_local_tbstk);
+    remove_symboltableStack(simualated_local_tbstk);
+    if (return_type == 0){
+        fprintf(stderr, RED"[determine_return_valuetype] a function must have at least one return statement. in line %d"RESET, p->line);
+        exit(999);
+    }
+    return return_type;
+}
+
 void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
     if (p == NULL) return;
     switch(p->pnodetype){
@@ -670,9 +852,11 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             treewalker(p->childs[0], global_tb, local_tbstk);
             break;
         }
+        //nodes in `input``
         case NODETYPE_SDD_LIST:
         case NODETYPE_DECL_AS_SDD:
         case NODETYPE_STATEMENT_AS_SDD:
+        case NODETYPE_DEFN_AS_SDD:
         case NODETYPE_STATEMENT_LIST:
         // the type checking with in control flow, will just fall through
         case NODETYPE_WHILE_STATEMENT:
@@ -681,6 +865,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         case NODETYPE_ELSIF_SENTENCE:
         case NODETYPE_ELSE_SENTENCE:
         case NODETYPE_ELSIF_SENTENCE_LIST:
+        // leaf
         case NODETYPE_PLACEHOLDER:
         {
             for (int i = 0; i < p->childscount; i++)
@@ -817,6 +1002,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 if (record != NULL) {
                     int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE}; 
                     check_type_in_list(record->valuetype, truthlist, 3);
+                    declare_symbol(snode->sval, VALUETYPE_LINK_TO_GLOBAL, LOCAL_SCOPE, snode->line, top_symboltableStack(local_tbstk));
                 } else {
                     fprintf(stderr, RED"[treewalker] can't access unknown global id in local env. in line %d"RESET, p->line);
                     exit(999);
@@ -858,6 +1044,23 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             struct pNode * exprnode_end = p->childs[2];
             check_type_equal(type_synthesis(exprnode_beg, global_tb, local_tbstk), VALUETYPE_INT);
             check_type_equal(type_synthesis(exprnode_end, global_tb, local_tbstk), VALUETYPE_INT);
+            break;
+        }
+        case NODETYPE_FUNC_DEFN:{
+            // only allow 1 formal pararamter
+            if (p->childs[4] != NULL) {
+                fprintf(stderr, RED"[treewalker] bad function defn. only 1 formal pararamter is allowed. in line %d"RESET, p->line);
+                exit(999);
+            }
+            struct sNode * func_name = (struct sNode *)(p->childs[1]); 
+            printf("-------determine defn `%s` input and return type------\n", func_name->sval);
+            int formal_parameter_valuetype = determine_formal_parameter_valuetype(p);
+            int return_valuetype = determine_return_valuetype(p, formal_parameter_valuetype, global_tb);
+            printf("for function `%s`, input is `%c`, return type is `%c`\n",func_name->sval, formal_parameter_valuetype, return_valuetype);
+            printf("-------determine finish--------------------------\n");
+            declare_symbol(func_name->sval, VALUETYPE_FUNC, GLOBAL_SCOPE, func_name->line, global_tb);
+            init_func_symbol(func_name->sval, GLOBAL_SCOPE, formal_parameter_valuetype, return_valuetype, p, func_name->line, global_tb);
+            
             break;
         }
         default: printf("visit unsupported node type for treewalker: %d\n", p->pnodetype);

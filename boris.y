@@ -106,7 +106,7 @@
 %nonassoc EXPR_ARRAY_ID;
 %nonassoc EXPR_INT;
 
-input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); visualize($$, 0); struct symboltable* global_tb = init_symboltable(5, GLOBAL_SCOPE); struct symboltableStack* local_tbstk= init_symboltableStack(3); treewalker($$, global_tb, local_tbstk); print_symboltable(global_tb); treefree($$);}
+input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); visualize($$, 0); struct symboltable* global_tb = init_symboltable(MAX_SYMBOLTABLE_SIZE, GLOBAL_SCOPE); struct symboltableStack* local_tbstk= init_symboltableStack(MAX_SYMBOLTABLE_STACK_SIZE); treewalker($$, global_tb, local_tbstk); print_symboltable(global_tb); treefree($$);}
 ;
 
 sdd_list: /* empty */ { $$ = NULL; } 

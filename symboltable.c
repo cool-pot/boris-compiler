@@ -257,6 +257,36 @@ void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int u
     return;
 }
 
+void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int return_valuetype, struct pNode* defnnode, int line, struct symboltable* tb){
+    struct symboltableRecord* r = lookup_symbol(sval, scope, tb);
+    if (r == NULL) {
+        fprintf(stderr, RED"[symbol table error]update a undeclared symbol %s in this scope is not valid"RESET, sval);
+        exit(993);
+    }
+    if (r->valuetype != VALUETYPE_FUNC) {
+        fprintf(stderr, RED"[symbol table error]wrong type, can't init a func value to non-func symbol %s in this scope"RESET, sval);
+        exit(992);
+    }
+    // init the symbol function here
+    struct symboltableRecordFunction* function = malloc(sizeof(struct symboltableRecordFunction)); //TODO Closed. will be free in remove_symbol.
+    if(!function) {
+        fprintf(stderr, RED"[symbol table error]Out of space."RESET);
+        exit(0);
+    }
+    function->defnnode = defnnode;
+    function->formal_parameter_valuetype = formal_parameter_valuetype;
+    function->return_valuetype = return_valuetype;
+    r->value = (struct symboltableRecordValue*)function;
+    // verbose print
+    if (SYMBOLTABLE_VERBOSE) {
+        char symbolscope[7];
+        if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
+        else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
+        fprintf(stderr, GREEN"[symbol table update]init %s function symbol `%s` in line %d.\n"RESET, symbolscope, sval, line);
+    }
+    return;
+}
+
 void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
     if (scope != GLOBAL_SCOPE && scope != LOCAL_SCOPE){
         fprintf(stderr, RED"[symbol table error]internal error, unsupported scope: %d"RESET, scope);
@@ -400,6 +430,16 @@ void print_symboltableRecord(struct symboltableRecord* record){
                     exit(975);
                 }else {
                      printf("value:link_to_global");
+                }
+                break;
+            }
+            case VALUETYPE_FUNC:{
+                if (record->value == NULL) { 
+                    printf(RED"[symbol table error]`%s`, internal error, func valuetype has null value %c"RESET, record->sval, record->valuetype);
+                    exit(975);
+                } else{
+                    struct symboltableRecordFunction* function = (struct symboltableRecordFunction*) record->value;
+                    printf("formal_parameter: `%c`, return: `%c`", function->formal_parameter_valuetype, function->return_valuetype);
                 }
                 break;
             }

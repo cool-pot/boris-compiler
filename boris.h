@@ -13,8 +13,8 @@
 #define MAX_INT_LIT 2147483647
 #define MAX_INT_LIT_LENGTH 10
 #define PARSE_TREE_MAX_CHILD 50
-#define MAX_SYMBOLTABLE_SIZE 1000
-#define MAX_SYMBOLTABLE_STACK_SIZE 100
+#define MAX_SYMBOLTABLE_SIZE 10
+#define MAX_SYMBOLTABLE_STACK_SIZE 5
 
 /* colors setting*/
 #define RESET   "\033[0m"
@@ -129,6 +129,12 @@ struct symboltableRecordValue {
   int ivallistlength;   // the total length, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
 };
 
+struct symboltableRecordFunction {
+  struct pNode* defnnode;
+  int formal_parameter_valuetype;
+  int return_valuetype;
+};
+
 struct symboltableRecord {
     int valid;                                // 0 if not valid
     char* sval;                               // ID
@@ -186,6 +192,7 @@ void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb);
 void update_int_symbol(char* sval, int scope, int ival, int line, struct symboltable* tb);
 void init_int_list_symbol(char* sval, int scope, int ivallist_start, int ivallistlength, int line, struct symboltable* tb);
 void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int updateindex, int line, struct symboltable* tb);
+void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int return_valuetype, struct pNode* defnnode, int line, struct symboltable* tb);
 void remove_symbol(char* sval, int scope, int line, struct symboltable* tb);
 void print_symboltableRecord(struct symboltableRecord* record);
 #endif // COMPILERDESIGNPROJECT_BORIS_H
