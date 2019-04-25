@@ -783,6 +783,7 @@ int _get_first_return_statement_type(struct pNode* p, struct symboltable* global
             }
             break;
         }
+        //lhs assign node
         case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT:{
             struct pNode* lhsnode = p->childs[0]; 
             struct pNode* exprnode = p->childs[2];
