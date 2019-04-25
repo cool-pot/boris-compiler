@@ -1,0 +1,16 @@
+*** if-else control flow will just fall through
+global x;
+array x[1..45];
+if 2,2>1 then 
+    x=1;
+else
+    x=1,2;
+end if
+
+
+*** while, foreach control flow will also just fall through
+global iter = 0;
+while 10>iter do
+    iter = iter,1;
+end while
+

@@ -1,0 +1,15 @@
+global arr;
+array arr [1..2] i = 2*i;
+arr[0] <-> arr[1];
+
+foreach i in arr do 
+  i = i+1;
+end for *** i will disappear after this line
+
+global c=1;
+if c==1,2 then *** even c
+     print 2;
+else *** odd
+    print 1;
+end if
+

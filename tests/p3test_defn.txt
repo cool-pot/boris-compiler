@@ -1,0 +1,34 @@
+*** default is input type is int [input I, return T]
+defun echo(a)
+  return a,2*a,3*a;
+end defun  
+
+*** sumOfPair[input T, return I]
+defun sumOfPair(a)
+  local left;
+  local right;
+  left = a.1;
+  right = a.2;
+  return left+right;
+end defun
+
+global a = 0;
+global b = sumOfPair(1,2);
+
+*** recursion is defin allowed when we can determine return type defore the function is called inside.
+defun dfs(node)
+    if node == 0 then 
+      return 0; 
+    end if
+
+    return dfs(node-1)+node;
+end defun 
+
+global s = dfs(10); *** should be 10+9+8+...+1
+
+*** don't allow void return type
+defun printTuple(t)
+  local a = t.0; *** this line will tell compiler t is a tuple
+  print t;
+  return 0; *** must have this line, otherwise will fail and exit
+end defun 

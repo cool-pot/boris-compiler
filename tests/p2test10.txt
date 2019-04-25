@@ -15,6 +15,7 @@ print square a + square b;
 
 
 *** bubblesort? ***
+global arr;
 array arr[1..10];
 arr[1]=23;
 arr[2]=1;
@@ -41,7 +42,9 @@ end for
 
 *** now weird stuff... tuples
 *** note there's no "tuple" declaration any more
-
+global t;
+global tt;
+global ttt;
 t=0,1,3;
 tt=3,2,1;
 ttt=0,0,0,0,0,0;
@@ -50,4 +53,4 @@ ttt = t,tt; *** now ttt contains 0,1,3,3,2,1
 
 tt=t; *** now tt contains 0,1,3
 
-a[1],a[2]=a[2],a[1]; *** exchanged; same as a[1]<->a[2]
+***arr[1],arr[2]=arr[2],arr[1]; *** exchanged; same as arr[1]<->arr[2]

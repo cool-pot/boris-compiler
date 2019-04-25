@@ -1,0 +1,10 @@
+global i;
+global t = 2,3;
+global temp = 999;
+i = temp;
+global tt;
+tt = t,t,i,2;
+global arr;
+array arr[5..temp] i = i+1;
+
+*** global anotherarr = arr; ** invalid array assign
