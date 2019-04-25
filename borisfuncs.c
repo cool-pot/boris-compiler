@@ -425,6 +425,7 @@ int type_lookup(char* sval, struct symboltable* global_tb, struct symboltableSta
         }
     }
     fprintf(stderr, RED"[type_lookup]: %s is not found in current envrionment.\n"RESET, sval);
+    exit(999);
     return -1;
 }
 
@@ -673,10 +674,15 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         case NODETYPE_DECL_AS_SDD:
         case NODETYPE_STATEMENT_AS_SDD:
         case NODETYPE_STATEMENT_LIST:
+        // the type checking with in control flow, will just fall through
         case NODETYPE_WHILE_STATEMENT:
         case NODETYPE_IF_STATEMENT:
         case NODETYPE_IF_ELSE_STATEMENT:
-        case NODETYPE_PLACEHOLDER:{
+        case NODETYPE_ELSIF_SENTENCE:
+        case NODETYPE_ELSE_SENTENCE:
+        case NODETYPE_ELSIF_SENTENCE_LIST:
+        case NODETYPE_PLACEHOLDER:
+        {
             for (int i = 0; i < p->childscount; i++)
                 treewalker(p->childs[i], global_tb, local_tbstk);
             break;
@@ -801,8 +807,21 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         }
         case NODETYPE_NO_EXPR_GLOBAL_DECL:{
             // declare global id with no expr in any env
-            struct sNode * snode = (struct sNode *)(p->childs[1]); 
-            declare_symbol(snode->sval, VALUETYPE_UNKNOWN, GLOBAL_SCOPE, snode->line, global_tb);
+            // if in local, then declare a local `link` and check global variable has a 'known' type
+            // if in global, then declare a global `unknown` symbol
+            struct sNode * snode = (struct sNode *)(p->childs[1]);
+            if (check_current_scope(global_tb, local_tbstk, GLOBAL_SCOPE)){ 
+                declare_symbol(snode->sval, VALUETYPE_UNKNOWN, GLOBAL_SCOPE, snode->line, global_tb);
+            } else if (check_current_scope(global_tb, local_tbstk, LOCAL_SCOPE)){
+                struct symboltableRecord* record = lookup_symbol(snode->sval, GLOBAL_SCOPE, global_tb);
+                if (record != NULL) {
+                    int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE}; 
+                    check_type_in_list(record->valuetype, truthlist, 3);
+                } else {
+                    fprintf(stderr, RED"[treewalker] can't access unknown global id in local env. in line %d"RESET, p->line);
+                    exit(999);
+                }
+            }
             break;
         }
         case NODETYPE_GLOBAL_DECL:{
@@ -830,6 +849,15 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             check_type_equal(type_synthesis(exprnode_end, global_tb, local_tbstk), VALUETYPE_INT);
             struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
             set_symbol_type(snode->sval, VALUETYPE_ARRAY, matched_tb->scope, snode->line, matched_tb);
+            break;
+        }
+        case NODETYPE_BOOLEXPR:{
+            //expr bool_op expr
+            // only allow int in bool expr compare
+            struct pNode * exprnode_beg = p->childs[0];
+            struct pNode * exprnode_end = p->childs[2];
+            check_type_equal(type_synthesis(exprnode_beg, global_tb, local_tbstk), VALUETYPE_INT);
+            check_type_equal(type_synthesis(exprnode_end, global_tb, local_tbstk), VALUETYPE_INT);
             break;
         }
         default: printf("visit unsupported node type for treewalker: %d\n", p->pnodetype);
