@@ -854,26 +854,26 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             break;
         }
         //nodes in `input``
-        case NODETYPE_SDD_LIST:
-        case NODETYPE_DECL_AS_SDD:
-        case NODETYPE_STATEMENT_AS_SDD:
-        case NODETYPE_DEFN_AS_SDD:
-        case NODETYPE_STATEMENT_LIST:
+        case NODETYPE_STATEMENT_LIST:                                                  //1046
+        case NODETYPE_STATEMENT_AS_SDD:                                                //1069
+        case NODETYPE_DECL_AS_SDD:                                                     //1070
+        case NODETYPE_DEFN_AS_SDD:                                                     //1071
+        case NODETYPE_SDD_LIST:                                                        //1072
         // the type checking with in control flow, will just fall through
-        case NODETYPE_WHILE_STATEMENT:
-        case NODETYPE_IF_STATEMENT:
-        case NODETYPE_IF_ELSE_STATEMENT:
-        case NODETYPE_ELSIF_SENTENCE:
-        case NODETYPE_ELSE_SENTENCE:
-        case NODETYPE_ELSIF_SENTENCE_LIST:
-        // leaf
-        case NODETYPE_PLACEHOLDER:
+        case NODETYPE_WHILE_STATEMENT:                                                 //1047
+        case NODETYPE_ELSIF_SENTENCE:                                                  //1048
+        case NODETYPE_ELSE_SENTENCE:                                                   //1049
+        case NODETYPE_ELSIF_SENTENCE_LIST:                                             //1050
+        case NODETYPE_IF_STATEMENT:                                                    //1051
+        case NODETYPE_IF_ELSE_STATEMENT:                                               //1052
+        //leaf - keyword place holder
+        case NODETYPE_PLACEHOLDER:                                                     //1026
         {
             for (int i = 0; i < p->childscount; i++)
                 treewalker(p->childs[i], global_tb, local_tbstk);
             break;
         }
-        case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT:{
+        case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT: {                                   //1044
             //lhs OP_ASSIGN expr OP_SEMI
             struct pNode* lhsnode = p->childs[0]; 
             struct pNode* exprnode = p->childs[2];
@@ -903,7 +903,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             }
             break;
         }
-        case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT:{
+        case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT: {                                  //1045
             //left and right should have the same type, and same depth
             struct pNode* left_lhsnode = p->childs[0]; 
             struct pNode* right_lhsnode = p->childs[2];
@@ -916,7 +916,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             }
             break;
         }
-        case NODETYPE_FOREACH_RANGE_STATEMENT:{
+        case NODETYPE_FOREACH_RANGE_STATEMENT: {                                        //1053
             // the temp iterator id is treated as a temprary global id, will remove it after this statement
             struct sNode* snode = (struct sNode*) p->childs[1]->childs[0];
             struct pNode* rangenode = p->childs[3];
@@ -929,7 +929,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
             break;
         }
-        case NODETYPE_FOREACH_ARRAYID_STATEMENT:{
+        case NODETYPE_FOREACH_ARRAYID_STATEMENT: {                                      //1055
             // the temp iterator id is treated as a temprary global id, will remove it after this statement
             struct sNode* snode = (struct sNode*) p->childs[1]->childs[0];
             struct pNode* arrayidnode = p->childs[3];
@@ -942,7 +942,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
             break;
         }
-        case NODETYPE_PRINT_STATEMENT:{
+        case NODETYPE_PRINT_STATEMENT: {                                                //1056
             // when print a expr, the type of expr should be known and in {arrat, tuple, int}
             struct pNode* exprnode = p->childs[1];
             int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
@@ -950,7 +950,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             check_type_in_list(valuetype, truthlist, 3);
             break;
         }
-        case NODETYPE_RETURN_STATEMENT:{
+        case NODETYPE_RETURN_STATEMENT: {                                               //1057
             // when return a expr, the type of expr should be known and in {tuple, int}
             // must be in a local enviroment
             if (LOCAL_ENV){
@@ -965,7 +965,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             }
             break;
         }
-        case NODETYPE_NO_EXPR_LOCAL_DECL:{
+        case NODETYPE_NO_EXPR_LOCAL_DECL: {                                             //1075 
             // only declare local id with no expr in local env
             if (check_current_scope(global_tb, local_tbstk, LOCAL_SCOPE) == 0){
                 fprintf(stderr, RED"[treewalker] can't declare local id with no expr outside local env. in line %d"RESET, p->line);
@@ -976,7 +976,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             declare_symbol(snode->sval, VALUETYPE_UNKNOWN, LOCAL_SCOPE, snode->line, local_tb);
             break;
         }
-        case NODETYPE_LOCAL_DECL:{
+        case NODETYPE_LOCAL_DECL: {                                                     //1059
             // only declare local id in local env
             if (check_current_scope(global_tb, local_tbstk, LOCAL_SCOPE) == 0){
                 fprintf(stderr, RED"[treewalker] can't declare local id with expr outside local env. in line %d"RESET, p->line);
@@ -991,7 +991,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             declare_symbol(snode->sval, valuetype, LOCAL_SCOPE, snode->line,local_tb);
             break;
         }
-        case NODETYPE_NO_EXPR_GLOBAL_DECL:{
+        case NODETYPE_NO_EXPR_GLOBAL_DECL: {                                            //1074
             // declare global id with no expr in any env
             // if in local, then declare a local `link` and check global variable has a 'known' type
             // if in global, then declare a global `unknown` symbol
@@ -1011,7 +1011,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             }
             break;
         }
-        case NODETYPE_GLOBAL_DECL:{
+        case NODETYPE_GLOBAL_DECL: {                                                    //1060
             // only declare global id with expr in global env
             if (check_current_scope(global_tb, local_tbstk, GLOBAL_SCOPE) == 0){
                 fprintf(stderr, RED"[treewalker] can't declare global id with expr outside global env. in line %d"RESET, p->line);
@@ -1025,8 +1025,8 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             declare_symbol(snode->sval, valuetype, GLOBAL_SCOPE, snode->line, global_tb);
             break;
         }
-        case NODETYPE_ARRAY_DECL:
-        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC:{
+        case NODETYPE_ARRAY_DECL:                                                       //1061
+        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC: {                                     //1062
             //KW_ARRAY ID OP_LBRAK expr OP_DOTDOT expr OP_RBRAK OP_SEMI 
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
             struct pNode * exprnode_beg = p->childs[3];
@@ -1038,7 +1038,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             set_symbol_type(snode->sval, VALUETYPE_ARRAY, matched_tb->scope, snode->line, matched_tb);
             break;
         }
-        case NODETYPE_BOOLEXPR:{
+        case NODETYPE_BOOLEXPR:{                                                        //1042
             //expr bool_op expr
             // only allow int in bool expr compare
             struct pNode * exprnode_beg = p->childs[0];
@@ -1047,7 +1047,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             check_type_equal(type_synthesis(exprnode_end, global_tb, local_tbstk), VALUETYPE_INT);
             break;
         }
-        case NODETYPE_FUNC_DEFN:{
+        case NODETYPE_FUNC_DEFN: {                                                      //1068
             // only allow 1 formal pararamter
             if (p->childs[4] != NULL) {
                 fprintf(stderr, RED"[treewalker] bad function defn. only 1 formal pararamter is allowed. in line %d"RESET, p->line);
@@ -1063,6 +1063,41 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             init_func_symbol(func_name->sval, GLOBAL_SCOPE, formal_parameter_valuetype, return_valuetype, p, func_name->line, global_tb);
             
             break;
+        }
+        // leaf
+        case NODETYPE_ID:                                                            //1024
+        case NODETYPE_INT:                                                           //1025
+        //#expr should not be viisted 
+        case NODETYPE_EXPR_COMMA_EXPR:                                               //1027
+        case NODETYPE_EXPR_MINUS_EXPR:                                               //1028
+        case NODETYPE_EXPR_PLUS_EXPR:                                                //1029
+        case NODETYPE_EXPR_DIV_EXPR:                                                 //1030
+        case NODETYPE_EXPR_MULT_EXPR:                                                //1031
+        case NODETYPE_LPAR_EXPR_RPAR:                                                //1032
+        case NODETYPE_SINGLE_ID_AS_EXPR:                                             //1033
+        case NODETYPE_FUNC_CALL_AS_EXPR:                                             //1034
+        case NODETYPE_TUPLE_REF_AS_EXPR:                                             //1035
+        case NODETYPE_ARRAY_REF_AS_EXPR:                                             //1036
+        case NODETYPE_SINGLE_INT_AS_EXPR:                                            //1058
+        //#lhsitem should not be visited
+        case NODETYPE_SINGLE_ID_AS_LHSITEM:                                          //1037
+        case NODETYPE_TUPLE_REF_AS_LHSITEM:                                          //1038
+        case NODETYPE_ARRAY_REF_AS_LHSITEM:                                          //1039
+        case NODETYPE_LHS:                                                           //1040
+        case NODETYPE_COMMA_LHSITEN_LIST:                                            //1041
+        //#inner parts
+        case NODETYPE_RANGE:                                                         //1043
+        case NODETYPE_ARRAY_ID:                                                      //1054
+        case NODETYPE_ITER_ID:                                                       //1076
+        //#function calls
+        case NODETYPE_STATEMENT_AS_SD:                                               //1063
+        case NODETYPE_DECL_AS_SD:                                                    //1064
+        case NODETYPE_SD_LIST:                                                       //1065
+        case NODETYPE_BODY:                                                          //1066
+        case NODETYPE_COMMA_ID_LIST:                                                 //1067
+        {
+            printf("should not visit this node directly in treewalker: %d\n", p->pnodetype);
+            exit(999);
         }
         default: printf("visit unsupported node type for treewalker: %d\n", p->pnodetype);
     }

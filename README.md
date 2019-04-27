@@ -7,10 +7,10 @@ The project involves building several stages of a complete compiler for a made-u
 
 The following parts will be necessary:
 
-- a scanner 
-- a parser and symbol table handler
-- a type checker
-- a code generator
+- [x] scanner 
+- [x] parser
+- [x] symbol table handler and type checker
+- [ ] code generator
 
 ## scanner
 
