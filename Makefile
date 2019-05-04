@@ -1,4 +1,4 @@
-CC = gcc
+CC = clang
 CFLAGS = -std=gnu11 -Wall
 SCANNER_TARGET = boris_scanner
 PARSER_TARGET = boris_parser
