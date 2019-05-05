@@ -16,6 +16,7 @@
 #define MAX_INT_LIT 2147483647
 #define MAX_INT_LIT_LENGTH 10
 #define PARSE_TREE_MAX_CHILD 50
+#define MAX_TUPLE_ARRAY_SIZE 10
 #define MAX_SYMBOLTABLE_SIZE 10
 #define MAX_SYMBOLTABLE_STACK_SIZE 5
 
@@ -126,10 +127,10 @@ struct placeholderNode {
 #define INITTYPE 0
 
 struct symboltableRecordValue {
-  int ival;             // reserved for VALUETYPE_INT
-  int* ivallist;        // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
-  int ivallist_start;   // the start index, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
-  int ivallistlength;   // the total length, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ival;                                  // reserved for VALUETYPE_INT
+  int ivallist[MAX_TUPLE_ARRAY_SIZE];        // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ivallist_start;                        // the start index, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ivallistlength;                        // the total length, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
 };
 
 struct symboltableRecordFunction {
@@ -148,9 +149,9 @@ struct symboltableRecord {
 };
 
 struct symboltable {
-  int length;                           // total length
-  int scope;                            // scope = GLOBAL_SCOPE or LOCAL_SCOPE
-  struct symboltableRecord* records;    // an array of symboltableRecord
+  int length;                                                 // total length
+  int scope;                                                  // scope = GLOBAL_SCOPE or LOCAL_SCOPE
+  struct symboltableRecord* records[MAX_SYMBOLTABLE_SIZE];    // an array of symboltableRecord pointers
 };
 
 struct symboltableStack {

@@ -12,3 +12,4 @@ boris.lex*
 grammar*
 tmp
 boris.output
+*.o
