@@ -8,11 +8,15 @@
 #ifndef COMPILERDESIGNPROJECT_BORIS_H
 #define COMPILERDESIGNPROJECT_BORIS_H
 
+# include <llvm-c/Core.h>
+# include <llvm-c/BitWriter.h>
+
 /* parameters */
 #define MAX_ID_LENGTH 50
 #define MAX_INT_LIT 2147483647
 #define MAX_INT_LIT_LENGTH 10
 #define PARSE_TREE_MAX_CHILD 50
+#define MAX_TUPLE_ARRAY_SIZE 10
 #define MAX_SYMBOLTABLE_SIZE 10
 #define MAX_SYMBOLTABLE_STACK_SIZE 5
 
@@ -123,10 +127,10 @@ struct placeholderNode {
 #define INITTYPE 0
 
 struct symboltableRecordValue {
-  int ival;             // reserved for VALUETYPE_INT
-  int* ivallist;        // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
-  int ivallist_start;   // the start index, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
-  int ivallistlength;   // the total length, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ival;                                  // reserved for VALUETYPE_INT
+  int ivallist[MAX_TUPLE_ARRAY_SIZE];        // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ivallist_start;                        // the start index, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int ivallistlength;                        // the total length, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
 };
 
 struct symboltableRecordFunction {
@@ -145,9 +149,9 @@ struct symboltableRecord {
 };
 
 struct symboltable {
-  int length;                           // total length
-  int scope;                            // scope = GLOBAL_SCOPE or LOCAL_SCOPE
-  struct symboltableRecord* records;    // an array of symboltableRecord
+  int length;                                                 // total length
+  int scope;                                                  // scope = GLOBAL_SCOPE or LOCAL_SCOPE
+  struct symboltableRecord* records[MAX_SYMBOLTABLE_SIZE];    // an array of symboltableRecord pointers
 };
 
 struct symboltableStack {
@@ -170,7 +174,7 @@ struct pNode *newiNode(int ival);
 struct pNode *newplaceholderNode(int tok);
 void visualize(struct pNode *p, int level);
 void treefree(struct pNode *p);
-void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltableStack* local_tbstk);
+void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltableStack* local_tbstk, LLVMBuilderRef builder, LLVMModuleRef module);
 
 /* symbol table handler*/
 struct symboltableStack* init_symboltableStack(int capacity);
@@ -195,4 +199,10 @@ void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int u
 void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int return_valuetype, struct pNode* defnnode, int line, struct symboltable* tb);
 void remove_symbol(char* sval, int scope, int line, struct symboltable* tb);
 void print_symboltableRecord(struct symboltableRecord* record);
+
+
+/*code generator*/
+LLVMValueRef boris_codegen_int(struct pNode* node);
+LLVMValueRef boris_codegen_expr_plus_expr(struct pNode* node, LLVMBuilderRef builder,  LLVMModuleRef module);
+LLVMValueRef boris_codegen(struct pNode *node,  LLVMBuilderRef builder, LLVMModuleRef module);
 #endif // COMPILERDESIGNPROJECT_BORIS_H

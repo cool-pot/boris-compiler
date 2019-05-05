@@ -847,12 +847,18 @@ int determine_return_valuetype(struct pNode* p, int formal_paramter_valuetype, s
     return return_type;
 }
 
-void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
+void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk,  \
+                                                        LLVMBuilderRef builder, LLVMModuleRef module){
     if (p == NULL) return;
     switch(p->pnodetype){
         case NODETYPE_ROOT_INPUT:{
             printf("> Start walking on parse tree:\n\n");
-            treewalker(p->childs[0], global_tb, local_tbstk);
+            /// void main(void)
+            LLVMTypeRef MainFunctionTy = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
+            LLVMValueRef MainFunction = LLVMAddFunction(module, "MainFunction", MainFunctionTy);
+            LLVMBasicBlockRef MainEntry = LLVMAppendBasicBlock(MainFunction, "MainEntry");
+            LLVMPositionBuilderAtEnd(builder, MainEntry);
+            treewalker(p->childs[0], global_tb, local_tbstk, builder, module);
             break;
         }
         //nodes in `input``
@@ -872,7 +878,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         case NODETYPE_PLACEHOLDER:                                                     //1026
         {
             for (int i = 0; i < p->childscount; i++)
-                treewalker(p->childs[i], global_tb, local_tbstk);
+                treewalker(p->childs[i], global_tb, local_tbstk, builder, module);
             break;
         }
         case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT: {                                   //1044
@@ -927,7 +933,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             check_type_equal(type_synthesis(rangenode->childs[0], global_tb, local_tbstk), VALUETYPE_INT);
             check_type_equal(type_synthesis(rangenode->childs[2], global_tb, local_tbstk), VALUETYPE_INT);
             for (int i = 4; i < p->childscount; i++)
-                treewalker(p->childs[i], global_tb, local_tbstk);
+                treewalker(p->childs[i], global_tb, local_tbstk, builder, module);
             remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
             break;
         }
@@ -940,7 +946,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb);
             check_type_equal(type_lookup(arraynamenode->sval, global_tb, local_tbstk), VALUETYPE_ARRAY);
             for (int i = 4; i < p->childscount; i++)
-                treewalker(p->childs[i], global_tb, local_tbstk);
+                treewalker(p->childs[i], global_tb, local_tbstk, builder, module);
             remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
             break;
         }
