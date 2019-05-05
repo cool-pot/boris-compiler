@@ -84,7 +84,6 @@ int next_available_symbol_slot(struct symboltable* tb){
 }
 
 void declare_symbol(char* sval, int valuetype, int scope, int line, struct symboltable* tb){
-    printf("debug call declare_symbol\n" );
     if (valuetype != VALUETYPE_FUNC && valuetype != VALUETYPE_ARRAY && valuetype != VALUETYPE_TUPLE && valuetype != VALUETYPE_INT && valuetype != VALUETYPE_UNKNOWN && valuetype != VALUETYPE_LINK_TO_GLOBAL){
         fprintf(stderr, RED"[symbol table error]internal error, bad value type"RESET);
         exit(994);
@@ -150,14 +149,12 @@ void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb){
         fprintf(stderr, RED"[symbol table error]init a non-empty symbol `%s` in this scope"RESET, sval);
         exit(992);
     }
-    printf("debug value not ok\n");
     // init the symbol value here
     struct symboltableRecordValue* value = malloc(sizeof(struct symboltableRecordValue)); //TODO Closed. will be free in remove_symbol.
     if(!value) {
         fprintf(stderr, RED"[symbol table error]Out of space."RESET);
         exit(0);
     }
-    printf("debug value ok\n");
     value->ival = 0; // default value 0
     r->value = value;
     // verbose print
@@ -357,7 +354,6 @@ void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
 }
 
 void set_symbol_type(char* sval, int valuetype, int scope, int line, struct symboltable* tb){
-    printf("debug call set_symbol_type\n" );
     if (valuetype != VALUETYPE_FUNC && valuetype != VALUETYPE_ARRAY && valuetype != VALUETYPE_TUPLE && valuetype != VALUETYPE_INT){
         fprintf(stderr, RED"[symbol table error]internal error, bad value type for set_symbol_type"RESET);
         exit(994);
@@ -507,6 +503,9 @@ void remove_symboltable(struct symboltable* tb){
 
 void remove_symboltableStack(struct symboltableStack* tbstk){
     if(tbstk!= NULL){
+        while(tbstk->current_length > 0){
+            pop_symboltableStack(tbstk);
+        }
         free(tbstk);
     }
     return;
@@ -614,5 +613,8 @@ void symbolTableTester(){
     pop_symboltableStack(tbstk);
     declare_symbol("arg3", VALUETYPE_LINK_TO_GLOBAL, LOCAL_SCOPE, 6, top_symboltableStack(tbstk));
     print_symboltable(top_symboltableStack(tbstk));
+
+    remove_symboltable(tb);
+    remove_symboltableStack(tbstk);
     
 }
