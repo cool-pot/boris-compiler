@@ -1,5 +1,7 @@
 /*
-* Functions for the boris compiler
+* Main Functions for the boris compiler
+*
+* including parse-tree-builder, parse-tree-walker, type-checker. 
 *
 * Author: Yi Zhou
 * March 31, 2019
