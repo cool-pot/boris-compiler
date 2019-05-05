@@ -1,7 +1,9 @@
 CC = clang
+LD = clang++
 CFLAGS = -std=gnu11 -Wall
-SCANNER_TARGET = boris_scanner
-PARSER_TARGET = boris_parser
+LLVMCFALGS = -g `llvm-config --cflags`
+LLVMLDFLAGS=`llvm-config --cxxflags --ldflags --libs core executionengine mcjit interpreter analysis native bitwriter --system-libs`
+MACCOMP = -I/usr/local/opt/llvm/include
 
 clean:
 	rm -rf lex.yy.c boris_scanner boris_parser boris\
@@ -12,12 +14,7 @@ clean:
 scanner: boris.l boris.y boris.h borisfuncs.c drivers/parser_driver.c
 	bison -d boris.y && \
 	flex -oboris.lex.c boris.l && \
-	$(CC) $(CFLAGS) -o $(SCANNER_TARGET) boris.tab.c boris.lex.c borisfuncs.c drivers/scanner_driver.c
-
-parser: boris.l boris.y boris.h borisfuncs.c drivers/parser_driver.c symboltable.c
-	bison -d boris.y && \
-	flex -oboris.lex.c boris.l && \
-	$(CC) $(CFLAGS) -o $(PARSER_TARGET) boris.tab.c boris.lex.c borisfuncs.c drivers/parser_driver.c symboltable.c
+	$(CC) $(CFLAGS) -o $@ boris.tab.c boris.lex.c borisfuncs.c drivers/scanner_driver.c
 
 parser-debug: boris.y
 	bison -d --report=look-ahead,itemset boris.y && \
@@ -27,3 +24,11 @@ parser-debug: boris.y
 
 symboltable_test:  drivers/symboltable_test_driver.c symboltable.c borisfuncs.c boris.tab.c boris.lex.c
 	$(CC) $(CFLAGS) -o $@ drivers/symboltable_test_driver.c symboltable.c borisfuncs.c boris.tab.c boris.lex.c
+
+parser.o: boris.l boris.y boris.h borisfuncs.c drivers/parser.c symboltable.c codegen.c
+	bison -d boris.y && \
+	flex -oboris.lex.c boris.l && \
+	$(CC) $(CFLAGS) $(LLVMCFALGS) -c boris.tab.c boris.lex.c borisfuncs.c drivers/parser.c symboltable.c codegen.c
+
+parser: parser.o
+	$(LD) parser.o $(LDFLAGS) -o $@

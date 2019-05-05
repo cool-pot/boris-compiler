@@ -8,6 +8,9 @@
 #ifndef COMPILERDESIGNPROJECT_BORIS_H
 #define COMPILERDESIGNPROJECT_BORIS_H
 
+# include <llvm-c/Core.h>
+# include <llvm-c/BitWriter.h>
+
 /* parameters */
 #define MAX_ID_LENGTH 50
 #define MAX_INT_LIT 2147483647
@@ -170,7 +173,7 @@ struct pNode *newiNode(int ival);
 struct pNode *newplaceholderNode(int tok);
 void visualize(struct pNode *p, int level);
 void treefree(struct pNode *p);
-void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltableStack* local_tbstk);
+void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltableStack* local_tbstk, LLVMBuilderRef builder, LLVMModuleRef module);
 
 /* symbol table handler*/
 struct symboltableStack* init_symboltableStack(int capacity);
@@ -195,4 +198,10 @@ void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int u
 void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int return_valuetype, struct pNode* defnnode, int line, struct symboltable* tb);
 void remove_symbol(char* sval, int scope, int line, struct symboltable* tb);
 void print_symboltableRecord(struct symboltableRecord* record);
+
+
+/*code generator*/
+LLVMValueRef boris_codegen_int(struct pNode* node);
+LLVMValueRef boris_codegen_expr_plus_expr(struct pNode* node, LLVMBuilderRef builder,  LLVMModuleRef module);
+LLVMValueRef boris_codegen(struct pNode *node,  LLVMBuilderRef builder, LLVMModuleRef module);
 #endif // COMPILERDESIGNPROJECT_BORIS_H
