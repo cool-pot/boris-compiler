@@ -4,13 +4,17 @@
 
 The project involves building several stages of a complete compiler for a made-up language made by Prof **Boris Aronov**. 
 
-
 The following parts will be necessary:
 
 - [x] scanner 
 - [x] parser
 - [x] symbol table handler and type checker
 - [ ] code generator
+
+Dependency: 
+
+- clang-6.0.0
+- llvm-6.0.0
 
 ## scanner
 

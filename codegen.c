@@ -7,9 +7,8 @@
 */
 
 # include <stdio.h>
+# include <string.h>
 # include "boris.h"
-# include <llvm-c/Core.h>
-# include <llvm-c/Analysis.h>
 
 
 
@@ -44,4 +43,71 @@ LLVMValueRef boris_codegen(struct pNode *node,  LLVMBuilderRef builder, LLVMModu
         }
     }
     return NULL;
+}
+
+// generate a list of putchar call
+void boris_codegen_message(char* message, int length, LLVMBuilderRef builder, LLVMModuleRef module){
+    LLVMValueRef putchar = LLVMGetNamedFunction(module, "putchar");
+    for (int i = 0; i < length; i++){
+        LLVMValueRef charactor = LLVMConstInt(LLVMInt32Type(), message[i], 0);
+        LLVMValueRef putcharArgs[] = { charactor }; 
+        LLVMBuildCall(
+            builder,
+            putchar,
+            putcharArgs,
+            1,
+            ""
+        );
+    }
+}
+
+// customized llvm module for boris language
+void begin_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
+    //set target (= "x86_64-pc-linux-gnu")
+    char *triple = LLVMGetDefaultTargetTriple();
+    LLVMSetTarget(module, triple);
+
+    // builtin module utility
+    // extern i32 @putchar(i32)
+    LLVMTypeRef putcharArgsTyList[] = { LLVMInt32Type() };
+    LLVMTypeRef putcharTy = LLVMFunctionType(
+        LLVMInt32Type(), putcharArgsTyList, 1, 0
+    );
+    LLVMValueRef putchar =LLVMAddFunction(module, "putchar", putcharTy);
+    
+    /// void main(void)
+    LLVMTypeRef MainFunctionTy = LLVMFunctionType(
+        LLVMVoidType(), NULL, 0, 0
+    );
+    LLVMValueRef MainFunction = LLVMAddFunction(module, "main", MainFunctionTy);
+    LLVMBasicBlockRef MainEntry = LLVMAppendBasicBlock(MainFunction, "MainEntry");
+    LLVMPositionBuilderAtEnd(builder, MainEntry);
+    //print > Hello From LLVM
+    char* message = "> Hello from compiled boris-LLVM object\n";
+    boris_codegen_message(message, strlen(message), builder, module);
+    
+
+}
+
+// wrap up llvm module for boris language
+void end_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
+    LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
+    //ugly hack, not safe, intend to handle empty input
+    if (LLVMCountBasicBlocks(MainFunction) != 1) {
+        LLVMBasicBlockRef EndEntry = LLVMAppendBasicBlock(MainFunction, "EndEntry");
+        LLVMPositionBuilderAtEnd(builder, EndEntry);
+    } else {
+        LLVMBasicBlockRef EndEntry = LLVMGetLastBasicBlock(MainFunction);
+        LLVMPositionBuilderAtEnd(builder, EndEntry);
+    }
+    LLVMBuildRetVoid(builder);
+}
+
+
+// handle the generated LLVM module before output
+void verify_llvm_module_and_output(LLVMModuleRef module){
+    char *error = NULL;
+    //LLVMVerifyModule(module, LLVMAbortProcessAction, &error);
+    LLVMDisposeMessage(error);
+    LLVMWriteBitcodeToFile(module, "a.bc");
 }

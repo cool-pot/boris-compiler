@@ -106,7 +106,7 @@
 %nonassoc EXPR_ARRAY_ID;
 %nonassoc EXPR_INT;
 
-input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); visualize($$, 0); struct symboltable* global_tb = init_symboltable(MAX_SYMBOLTABLE_SIZE, GLOBAL_SCOPE); struct symboltableStack* local_tbstk= init_symboltableStack(MAX_SYMBOLTABLE_STACK_SIZE); LLVMBuilderRef builder = LLVMCreateBuilder(); LLVMModuleRef module = LLVMModuleCreateWithName("module-boris-input"); treewalker($$, global_tb, local_tbstk, builder, module); print_symboltable(global_tb); LLVMWriteBitcodeToFile(module, "output.bc"); treefree($$);}
+input: sdd_list { $$ = newpNode(NODETYPE_ROOT_INPUT, 1, $1); visualize($$, 0); struct symboltable* global_tb = init_symboltable(MAX_SYMBOLTABLE_SIZE, GLOBAL_SCOPE); struct symboltableStack* local_tbstk= init_symboltableStack(MAX_SYMBOLTABLE_STACK_SIZE); LLVMBuilderRef builder = LLVMCreateBuilder(); LLVMModuleRef module = LLVMModuleCreateWithName("module-boris-input"); begin_boris_module(builder, module); treewalker($$, global_tb, local_tbstk, builder, module); end_boris_module(builder, module); print_symboltable(global_tb); verify_llvm_module_and_output(module); treefree($$);}
 ;
 
 sdd_list: /* empty */ { $$ = NULL; } 

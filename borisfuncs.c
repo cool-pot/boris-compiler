@@ -853,11 +853,6 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
     switch(p->pnodetype){
         case NODETYPE_ROOT_INPUT:{
             printf("> Start walking on parse tree:\n\n");
-            /// void main(void)
-            LLVMTypeRef MainFunctionTy = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
-            LLVMValueRef MainFunction = LLVMAddFunction(module, "MainFunction", MainFunctionTy);
-            LLVMBasicBlockRef MainEntry = LLVMAppendBasicBlock(MainFunction, "MainEntry");
-            LLVMPositionBuilderAtEnd(builder, MainEntry);
             treewalker(p->childs[0], global_tb, local_tbstk, builder, module);
             break;
         }
