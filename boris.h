@@ -8,8 +8,11 @@
 #ifndef COMPILERDESIGNPROJECT_BORIS_H
 #define COMPILERDESIGNPROJECT_BORIS_H
 
-# include <llvm-c/Core.h>
-# include <llvm-c/BitWriter.h>
+#include <llvm-c/Core.h>
+#include <llvm-c/ExecutionEngine.h>
+#include <llvm-c/Target.h>
+#include <llvm-c/Analysis.h>
+#include <llvm-c/BitWriter.h>
 
 /* parameters */
 #define MAX_ID_LENGTH 50
@@ -205,4 +208,8 @@ void print_symboltableRecord(struct symboltableRecord* record);
 LLVMValueRef boris_codegen_int(struct pNode* node);
 LLVMValueRef boris_codegen_expr_plus_expr(struct pNode* node, LLVMBuilderRef builder,  LLVMModuleRef module);
 LLVMValueRef boris_codegen(struct pNode *node,  LLVMBuilderRef builder, LLVMModuleRef module);
+void boris_codegen_message(char* message, int length, LLVMBuilderRef builder, LLVMModuleRef module);
+void verify_llvm_module_and_output(LLVMModuleRef module);
+void begin_boris_module(LLVMBuilderRef builder,LLVMModuleRef module);
+void end_boris_module(LLVMBuilderRef builder,LLVMModuleRef module);
 #endif // COMPILERDESIGNPROJECT_BORIS_H

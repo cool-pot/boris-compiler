@@ -13,3 +13,4 @@ grammar*
 tmp
 boris.output
 *.o
+a.out
