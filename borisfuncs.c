@@ -951,6 +951,23 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
             int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE};
             check_type_in_list(valuetype, truthlist, 3);
+            
+            LLVMValueRef expr_code = boris_codegen(p->childs[1], builder, module);
+            LLVMValueRef format_int = LLVMBuildGlobalStringPtr(
+                builder,
+                "%d\n",
+                "format_int"
+            );
+            LLVMValueRef PrintfArgs[] = { format_int, expr_code };
+            LLVMValueRef PrintfFunction = LLVMGetNamedFunction(module, "printf");
+            LLVMBuildCall(
+                builder,
+                PrintfFunction,
+                PrintfArgs,
+                2,
+                ""
+            );
+
             break;
         }
         case NODETYPE_RETURN_STATEMENT: {                                               //1057
