@@ -10,13 +10,95 @@
 # include <string.h>
 # include "boris.h"
 
+// The strlen and printf for llvm-c implementation is 
+// from https://github.com/0vercl0k/stuffz/blob/master/llvm-funz/llvm-c-frontend-playing-with-ir.c
+LLVMValueRef create_strlen_function(LLVMModuleRef *Module)
+{
+    LLVMValueRef Zero8 = LLVMConstInt(LLVMInt8Type(), 0, 0);
+    LLVMValueRef Zero32 = LLVMConstInt(LLVMInt32Type(), 0, 0);
+    LLVMValueRef One32 = LLVMConstInt(LLVMInt32Type(), 1, 0);
 
+    LLVMBuilderRef Builder = LLVMCreateBuilder();
+
+    /// 1. int strlen(char *);
+    LLVMTypeRef StrlenArgsTyList[] = { LLVMPointerType(LLVMInt8Type(), 0) };
+    LLVMTypeRef StrlenTy = LLVMFunctionType(
+        LLVMInt32Type(),
+        StrlenArgsTyList,
+        1,
+        0
+    );
+
+    LLVMValueRef StrlenFunction = LLVMAddFunction(*Module, "strlen", StrlenTy);
+    LLVMValueRef s = LLVMGetParam(StrlenFunction, 0);
+    LLVMSetValueName(s, "s");
+
+    LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(StrlenFunction, "init");
+    LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(StrlenFunction, "check");
+    LLVMBasicBlockRef BodyBasicBlock = LLVMAppendBasicBlock(StrlenFunction, "body");
+    LLVMBasicBlockRef EndBasicBlock = LLVMAppendBasicBlock(StrlenFunction, "end");
+
+    LLVMPositionBuilderAtEnd(Builder, InitBasicBlock);
+    /// 2. int i = 0;
+    LLVMValueRef i = LLVMBuildAlloca(Builder, LLVMInt32Type(), "i");
+    LLVMBuildStore(Builder, Zero32, i);
+
+    LLVMBuildBr(Builder, CheckBasicBlock);
+
+    /// 3. check:
+    LLVMPositionBuilderAtEnd(Builder, CheckBasicBlock);
+    /// 4. if(s[i] == 0)
+    LLVMValueRef id_if[] = { LLVMBuildLoad(Builder, i, "") };
+    LLVMValueRef If = LLVMBuildICmp(
+        Builder,
+        LLVMIntNE,
+        Zero8,
+        LLVMBuildLoad(
+            Builder,
+            LLVMBuildGEP(Builder, s, id_if, 1, ""),
+            ""
+        ),
+        ""
+    );
+
+    /// 5. goto end;
+    LLVMBuildCondBr(Builder, If, BodyBasicBlock, EndBasicBlock);
+
+    /// 6. body:
+    LLVMPositionBuilderAtEnd(Builder, BodyBasicBlock);
+    /// 7. i += 1;
+    // LLVMValueRef id_i[] = { Zero32 };
+    LLVMBuildStore(
+        Builder,
+        LLVMBuildAdd(
+            Builder,
+            LLVMBuildLoad(
+                Builder,
+                i,
+                ""
+            ),
+            One32,
+            ""
+        ),
+        i
+    );
+
+    /// 8. goto check;
+    LLVMBuildBr(Builder, CheckBasicBlock);
+
+    /// 9. end:
+    LLVMPositionBuilderAtEnd(Builder, EndBasicBlock);
+    /// 10. return i;
+    LLVMBuildRet(Builder, LLVMBuildLoad(Builder, i, ""));
+
+    return StrlenFunction;
+}
 
 // Generates an LLVM value object for a NODETYPE_INT.
 // Returns an LLVM value reference.
 LLVMValueRef boris_codegen_int(struct pNode* node){
     struct iNode* inode = (struct iNode*) node;
-    return LLVMConstReal(LLVMInt32Type(), inode->ival);
+    return LLVMConstInt(LLVMInt32Type(), inode->ival, 0);
 }
 
 // Generates an LLVM value object for NODETYPE_EXPR_PLUS_EXPR.
@@ -37,6 +119,9 @@ LLVMValueRef boris_codegen(struct pNode *node,  LLVMBuilderRef builder, LLVMModu
     switch(node->pnodetype) {
         case NODETYPE_INT: {
             return boris_codegen_int(node);
+        }
+        case NODETYPE_SINGLE_INT_AS_EXPR:{
+            return boris_codegen_int(node->childs[0]);
         }
         case NODETYPE_EXPR_PLUS_EXPR: {
             return boris_codegen_expr_plus_expr(node, builder, module);
@@ -67,13 +152,21 @@ void begin_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
     char *triple = LLVMGetDefaultTargetTriple();
     LLVMSetTarget(module, triple);
 
-    // builtin module utility
-    // extern i32 @putchar(i32)
-    LLVMTypeRef putcharArgsTyList[] = { LLVMInt32Type() };
-    LLVMTypeRef putcharTy = LLVMFunctionType(
-        LLVMInt32Type(), putcharArgsTyList, 1, 0
+    // builtin module print utility
+    
+    /// define strlen(char*, ...)
+    create_strlen_function(&module);
+    
+    /// extern int printf(char*, ...)
+    LLVMTypeRef PrintfArgsTyList[] = { LLVMPointerType(LLVMInt8Type(), 0) };
+    LLVMTypeRef PrintfTy = LLVMFunctionType(
+        LLVMInt32Type(),
+        PrintfArgsTyList,
+        0,
+        1 // IsVarArg
     );
-    LLVMValueRef putchar =LLVMAddFunction(module, "putchar", putcharTy);
+    LLVMAddFunction(module, "printf", PrintfTy);
+    
     
     /// void main(void)
     LLVMTypeRef MainFunctionTy = LLVMFunctionType(
@@ -83,10 +176,8 @@ void begin_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
     LLVMBasicBlockRef MainEntry = LLVMAppendBasicBlock(MainFunction, "MainEntry");
     LLVMPositionBuilderAtEnd(builder, MainEntry);
     //print > Hello From LLVM
-    char* message = "> Hello from compiled boris-LLVM object\n";
-    boris_codegen_message(message, strlen(message), builder, module);
-    
-
+    //char* message = "> Hello from compiled boris-LLVM object\n";
+    //boris_codegen_message(message, strlen(message), builder, module);
 }
 
 // wrap up llvm module for boris language
@@ -107,7 +198,7 @@ void end_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
 // handle the generated LLVM module before output
 void verify_llvm_module_and_output(LLVMModuleRef module){
     char *error = NULL;
-    //LLVMVerifyModule(module, LLVMAbortProcessAction, &error);
+    LLVMVerifyModule(module, LLVMAbortProcessAction, &error);
     LLVMDisposeMessage(error);
     LLVMWriteBitcodeToFile(module, "a.bc");
 }
