@@ -83,7 +83,7 @@ int next_available_symbol_slot(struct symboltable* tb){
     return -1;
 }
 
-void declare_symbol(char* sval, int valuetype, int scope, int line, struct symboltable* tb){
+struct symboltableRecord* declare_symbol(char* sval, int valuetype, int scope, int line, struct symboltable* tb){
     if (valuetype != VALUETYPE_FUNC && valuetype != VALUETYPE_ARRAY && valuetype != VALUETYPE_TUPLE && valuetype != VALUETYPE_INT && valuetype != VALUETYPE_UNKNOWN && valuetype != VALUETYPE_LINK_TO_GLOBAL){
         fprintf(stderr, RED"[symbol table error]internal error, bad value type"RESET);
         exit(994);
@@ -131,11 +131,10 @@ void declare_symbol(char* sval, int valuetype, int scope, int line, struct symbo
         fprintf(stderr, GREEN"[symbol table decl symbol]declare %s %s symbol `%s` in line %d.\n"RESET, symbolscope, symboltype, sval, line);
     }
 
-    return;
+    return tb->records[index];
 }
 
 void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb){
-    printf("call init_int_symbol\n");
     struct symboltableRecord* r = lookup_symbol(sval, scope, tb);
     if (r == NULL) {
         fprintf(stderr, RED"[symbol table error]update a undeclared symbol %s in this scope is not valid"RESET, sval);
@@ -156,6 +155,7 @@ void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb){
         exit(0);
     }
     value->ival = 0; // default value 0
+    value->address = NULL;
     r->value = value;
     // verbose print
     if (SYMBOLTABLE_VERBOSE) {
@@ -222,6 +222,7 @@ void init_int_list_symbol(char* sval, int scope, int ivallist_start, int ivallis
     }
     value->ivallist_start = ivallist_start;
     value->ivallistlength = ivallistlength;
+    value->address = NULL;
     r->value = value;
     // verbose print
     if (SYMBOLTABLE_VERBOSE) {

@@ -15,7 +15,7 @@
 # include "boris.h"
 # include "boris.tab.h" // yylloc definition, token number
 
-# define LOCAL_ENV (local_tbstk->current_length > 0)
+
 
 
 void yyerror(char* s, ...){
@@ -890,10 +890,10 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 exit(999);
             }
             // lhs has depth 1, if lhs is unknown type, update type. otherwise check equal.
+            struct pNode* lhsitem = p->childs[0];
+            struct pNode* singleid_as_lhsitem = lhsitem->childs[0];
+            struct sNode* snode = (struct sNode*) singleid_as_lhsitem->childs[0];
             if (lhstype == VALUETYPE_UNKNOWN) {
-                struct pNode* lhsitem = p->childs[0];
-                struct pNode* singleid_as_lhsitem = lhsitem->childs[0];
-                struct sNode* snode = (struct sNode*) singleid_as_lhsitem->childs[0];
                 struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
                 if (matched_tb) {
                     set_symbol_type(snode->sval, exprtype, matched_tb->scope, snode->line, matched_tb);
@@ -904,6 +904,24 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             } else {
                 check_type_equal(lhstype, exprtype);
             }
+            //update lhs lhs address
+            struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+            if (record->valuetype == VALUETYPE_INT) {
+                if (record->value == NULL){
+                    init_int_symbol(snode->sval, matched_tb->scope, snode->line, matched_tb);
+                    update_int_symbol(snode->sval, matched_tb->scope, 1, snode->line, matched_tb);
+                }
+            } else {
+                printf("lhs assign, no implementation\n");
+                exit(666);
+            }
+            LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
+            LLVMValueRef lhs = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
+            LLVMBuildStore(builder, expr_code, lhs);
+            record->value->address = lhs;
+
+            
             break;
         }
         case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT: {                                  //1045
@@ -952,7 +970,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE};
             check_type_in_list(valuetype, truthlist, 3);
             
-            LLVMValueRef expr_code = boris_codegen(p->childs[1], builder, module);
+            LLVMValueRef expr_code = boris_codegen_expr(p->childs[1], builder, module, global_tb, local_tbstk);
             LLVMValueRef format_int = LLVMBuildGlobalStringPtr(
                 builder,
                 "%d\n",
@@ -1038,11 +1056,25 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 exit(999);
             }
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
-            struct pNode * exprnode = p->childs[3]; 
+            struct pNode * exprnode = p->childs[3];
+            // check type 
             int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
             int truthlist[] = {VALUETYPE_INT, VALUETYPE_TUPLE};
             check_type_in_list(valuetype, truthlist, 2);
-            declare_symbol(snode->sval, valuetype, GLOBAL_SCOPE, snode->line, global_tb);
+            struct symboltableRecord* record = declare_symbol(snode->sval, valuetype, GLOBAL_SCOPE, snode->line, global_tb);
+            // build global declare code
+            if(valuetype == VALUETYPE_INT){
+                LLVMValueRef expr_code = boris_codegen_expr(p->childs[3], builder, module, global_tb, local_tbstk);
+                LLVMValueRef lhs = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
+                //LLVMValueRef lhs = LLVMAddGlobal(module, LLVMInt32Type(), snode->sval);
+                LLVMBuildStore(builder, expr_code, lhs);
+                init_int_symbol(snode->sval, GLOBAL_SCOPE, snode->line, global_tb);
+                update_int_symbol(snode->sval, GLOBAL_SCOPE, 1, snode->line, global_tb);
+                record->value->address = lhs;
+            } else {
+                printf("global decl, no implementation\n");
+                exit(666);
+            }
             break;
         }
         case NODETYPE_ARRAY_DECL:                                                       //1061
