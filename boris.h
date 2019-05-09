@@ -90,6 +90,8 @@ struct pNode {
   int pnodetype;
   int line;
   int childscount;
+  LLVMBasicBlockRef true_block; // reserved for boolexpr
+  LLVMBasicBlockRef false_block;// reserved for boolexpr 
   struct pNode* childs[PARSE_TREE_MAX_CHILD];
 };
 
@@ -130,6 +132,7 @@ struct placeholderNode {
 #define INITTYPE 0
 
 struct symboltableRecordValue {
+  LLVMValueRef address;                      // The LLVM address to the value
   int ival;                                  // reserved for VALUETYPE_INT
   int ivallist[MAX_TUPLE_ARRAY_SIZE];        // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
   int ivallist_start;                        // the start index, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
@@ -180,6 +183,8 @@ void treefree(struct pNode *p);
 void treewalker(struct pNode *p, struct symboltable* global_tb, struct symboltableStack* local_tbstk, LLVMBuilderRef builder, LLVMModuleRef module);
 
 /* symbol table handler*/
+# define LOCAL_ENV (local_tbstk->current_length > 0)
+
 struct symboltableStack* init_symboltableStack(int capacity);
 void pop_symboltableStack(struct symboltableStack* tbstk);
 void push_symboltableStack(struct symboltable* tb, struct symboltableStack* tbstk);
@@ -193,7 +198,7 @@ void print_symboltable(struct symboltable* tb);
 
 struct symboltableRecord* lookup_symbol(char* sval, int scope, struct symboltable* tb);
 int next_available_symbol_slot(struct symboltable* tb);
-void declare_symbol(char* sval, int valuetype, int scope, int line, struct symboltable* tb);
+struct symboltableRecord* declare_symbol(char* sval, int valuetype, int scope, int line, struct symboltable* tb);
 void set_symbol_type(char* sval, int valuetype, int scope, int line, struct symboltable* tb);
 void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb);
 void update_int_symbol(char* sval, int scope, int ival, int line, struct symboltable* tb);
@@ -205,10 +210,7 @@ void print_symboltableRecord(struct symboltableRecord* record);
 
 
 /*code generator*/
-LLVMValueRef boris_codegen_int(struct pNode* node);
-LLVMValueRef boris_codegen_expr_plus_expr(struct pNode* node, LLVMBuilderRef builder,  LLVMModuleRef module);
-LLVMValueRef boris_codegen(struct pNode *node,  LLVMBuilderRef builder, LLVMModuleRef module);
-void boris_codegen_message(char* message, int length, LLVMBuilderRef builder, LLVMModuleRef module);
+LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLVMModuleRef module, struct symboltable* global_tb, struct symboltableStack* local_tbstk);
 void verify_llvm_module_and_output(LLVMModuleRef module);
 void begin_boris_module(LLVMBuilderRef builder,LLVMModuleRef module);
 void end_boris_module(LLVMBuilderRef builder,LLVMModuleRef module);

@@ -1,0 +1,14 @@
+*** test level 1, double loop
+global outloop = 3;
+global innerloop = 11;
+global i = 0;
+global j = 0;
+
+while i <= outloop do
+    i = i+1;
+    j = 1;
+    while j < innerloop do
+        print j;
+    	j = j+1;
+    end while
+end while
