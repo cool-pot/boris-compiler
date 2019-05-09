@@ -1,0 +1,13 @@
+***test level 0
+global x = 1;
+x = 1;
+x = x+1;
+print x;
+
+global y = 9;
+print y;
+
+
+print 2+x*y;
+
+

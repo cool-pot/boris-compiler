@@ -108,9 +108,7 @@ LLVMValueRef boris_codegen_expr_plus_expr(struct pNode* node, LLVMBuilderRef bui
                                         struct symboltable* global_tb, struct symboltableStack* local_tbstk){
     LLVMValueRef left =  boris_codegen_expr(node->childs[0], builder, module, global_tb, local_tbstk);
     LLVMValueRef right =  boris_codegen_expr(node->childs[2], builder, module, global_tb, local_tbstk);
-    LLVMValueRef ret = LLVMBuildAlloca(builder, LLVMInt32Type(), "");
-    LLVMBuildStore(builder, LLVMBuildAdd(builder, left, right, ""), ret);
-    return LLVMBuildLoad(builder, ret, "expr_plus_expr_tmp");
+    return LLVMBuildAdd(builder, left, right, "expr_plus_expr_tmp");
 }
 
 // Generates an LLVM value object for NODETYPE_EXPR_MINUS_EXPR.
@@ -119,9 +117,7 @@ LLVMValueRef boris_codegen_expr_minus_expr(struct pNode* node, LLVMBuilderRef bu
                                         struct symboltable* global_tb, struct symboltableStack* local_tbstk){
     LLVMValueRef left =  boris_codegen_expr(node->childs[0], builder, module, global_tb, local_tbstk);
     LLVMValueRef right =  boris_codegen_expr(node->childs[2], builder, module, global_tb, local_tbstk);
-    LLVMValueRef ret = LLVMBuildAlloca(builder, LLVMInt32Type(), "");
-    LLVMBuildStore(builder, LLVMBuildSub(builder, left, right, ""), ret);
-    return LLVMBuildLoad(builder, ret, "expr_minus_expr_tmp");
+    return LLVMBuildSub(builder, left, right, "expr_minus_expr_tmp");
 }
 
 
@@ -131,9 +127,7 @@ LLVMValueRef boris_codegen_expr_div_expr(struct pNode* node, LLVMBuilderRef buil
                                         struct symboltable* global_tb, struct symboltableStack* local_tbstk){
     LLVMValueRef left =  boris_codegen_expr(node->childs[0], builder, module, global_tb, local_tbstk);
     LLVMValueRef right =  boris_codegen_expr(node->childs[2], builder, module, global_tb, local_tbstk);
-    LLVMValueRef ret = LLVMBuildAlloca(builder, LLVMInt32Type(), "");
-    LLVMBuildStore(builder, LLVMBuildUDiv(builder, left, right, ""), ret);
-    return LLVMBuildLoad(builder, ret, "expr_div_expr_tmp");
+    return LLVMBuildUDiv(builder, left, right, "expr_div_expr_tmp");
 }
 
 
@@ -143,9 +137,7 @@ LLVMValueRef boris_codegen_expr_mult_expr(struct pNode* node, LLVMBuilderRef bui
                                         struct symboltable* global_tb, struct symboltableStack* local_tbstk){
     LLVMValueRef left =  boris_codegen_expr(node->childs[0], builder, module, global_tb, local_tbstk);
     LLVMValueRef right =  boris_codegen_expr(node->childs[2], builder, module, global_tb, local_tbstk);
-    LLVMValueRef ret = LLVMBuildAlloca(builder, LLVMInt32Type(), "");
-    LLVMBuildStore(builder, LLVMBuildMul(builder, left, right, ""), ret);
-    return LLVMBuildLoad(builder, ret, "expr_mult_expr_tmp");
+    return  LLVMBuildMul(builder, left, right, "expr_mul_expr_tmp");
 }
 
 
@@ -183,7 +175,7 @@ LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLV
                 struct symboltableRecord* record = lookup_symbol(snode->sval, LOCAL_SCOPE, local_tb);
                 if (record->valuetype == VALUETYPE_INT) {
                     LLVMValueRef ret = record->value->address;
-                    return LLVMBuildLoad(builder, ret, "read_local_tb_int_temp");
+                    return LLVMBuildLoad(builder, ret, "load_local_tb_int_temp");
                 } else if (record->valuetype == VALUETYPE_LINK_TO_GLOBAL) {
                     break;
                 } else {
@@ -195,7 +187,7 @@ LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLV
             struct symboltableRecord* record = lookup_symbol(snode->sval, GLOBAL_SCOPE, global_tb);
             if (record->valuetype == VALUETYPE_INT) {
                 LLVMValueRef ret = record->value->address;
-                return LLVMBuildLoad(builder, ret, "read_global_tb_int_temp");
+                return LLVMBuildLoad(builder, ret, "load_global_tb_int_temp");
             } else {
                 printf("codegen. no implementation\n");
                 exit(666);
@@ -205,21 +197,6 @@ LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLV
     return NULL;
 }
 
-// generate a list of putchar call
-void boris_codegen_message(char* message, int length, LLVMBuilderRef builder, LLVMModuleRef module){
-    LLVMValueRef putchar = LLVMGetNamedFunction(module, "putchar");
-    for (int i = 0; i < length; i++){
-        LLVMValueRef charactor = LLVMConstInt(LLVMInt32Type(), message[i], 0);
-        LLVMValueRef putcharArgs[] = { charactor }; 
-        LLVMBuildCall(
-            builder,
-            putchar,
-            putcharArgs,
-            1,
-            ""
-        );
-    }
-}
 
 // customized llvm module for boris language
 void begin_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
@@ -258,14 +235,9 @@ void begin_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
 // wrap up llvm module for boris language
 void end_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
     LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
-    //ugly hack, not safe, intend to handle empty input
-    if (LLVMCountBasicBlocks(MainFunction) != 1) {
-        LLVMBasicBlockRef EndEntry = LLVMAppendBasicBlock(MainFunction, "EndEntry");
-        LLVMPositionBuilderAtEnd(builder, EndEntry);
-    } else {
-        LLVMBasicBlockRef EndEntry = LLVMGetLastBasicBlock(MainFunction);
-        LLVMPositionBuilderAtEnd(builder, EndEntry);
-    }
+    LLVMBasicBlockRef EndEntry = LLVMAppendBasicBlock(MainFunction, "EndEntry");
+    LLVMBuildBr(builder, EndEntry);
+    LLVMPositionBuilderAtEnd(builder, EndEntry);
     LLVMBuildRetVoid(builder);
 }
 

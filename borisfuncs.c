@@ -606,6 +606,9 @@ int type_synthesis(struct pNode* exprnode, struct symboltable* global_tb, struct
         }
         default: {
             printf("visit unsupported node type for type_synthesis: %d\n", exprnode->pnodetype);
+            if (exprnode->pnodetype == NODETYPE_PLACEHOLDER) {
+                printf("tok:%s\n", ((struct placeholderNode*)exprnode)->tokstr);
+            }
         }
     }
     return -1;
@@ -863,7 +866,6 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         case NODETYPE_DEFN_AS_SDD:                                                     //1071
         case NODETYPE_SDD_LIST:                                                        //1072
         // the type checking with in control flow, will just fall through
-        case NODETYPE_WHILE_STATEMENT:                                                 //1047
         case NODETYPE_ELSIF_SENTENCE:                                                  //1048
         case NODETYPE_ELSE_SENTENCE:                                                   //1049
         case NODETYPE_ELSIF_SENTENCE_LIST:                                             //1050
@@ -874,6 +876,30 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         {
             for (int i = 0; i < p->childscount; i++)
                 treewalker(p->childs[i], global_tb, local_tbstk, builder, module);
+            break;
+        }
+        case NODETYPE_WHILE_STATEMENT: {                                                //1047
+            struct pNode* boolnode = p->childs[1];
+            struct pNode* stmtsnode = p->childs[3];
+            LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
+            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_init");
+            LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_check");
+            LLVMBasicBlockRef BodyBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_body");
+            LLVMBasicBlockRef EndBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_end");
+            LLVMBuildBr(builder, InitBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, InitBasicBlock);
+            LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
+            // build bool code in CheckBasicBlock
+            LLVMPositionBuilderAtEnd(builder, CheckBasicBlock);
+            boolnode->true_block = BodyBasicBlock;
+            boolnode->false_block = EndBasicBlock;
+            treewalker(boolnode, global_tb, local_tbstk, builder, module);
+            // build statement list
+            LLVMPositionBuilderAtEnd(builder, BodyBasicBlock);
+            treewalker(stmtsnode, global_tb, local_tbstk, builder, module);
+            LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
+            // put builder at end
+            LLVMPositionBuilderAtEnd(builder, EndBasicBlock);
             break;
         }
         case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT: {                                   //1044
@@ -904,7 +930,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             } else {
                 check_type_equal(lhstype, exprtype);
             }
-            //update lhs lhs address
+            //update value in lhs address
             struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
             struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
             if (record->valuetype == VALUETYPE_INT) {
@@ -917,11 +943,10 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 exit(666);
             }
             LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
-            LLVMValueRef lhs = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
+            //LLVMValueRef lhs = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
+            LLVMValueRef lhs = record->value->address;
             LLVMBuildStore(builder, expr_code, lhs);
-            record->value->address = lhs;
-
-            
+            record->value->address = lhs;            
             break;
         }
         case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT: {                                  //1045
@@ -1094,9 +1119,26 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             //expr bool_op expr
             // only allow int in bool expr compare
             struct pNode * exprnode_beg = p->childs[0];
+            struct placeholderNode* op = (struct placeholderNode*) p->childs[1];
             struct pNode * exprnode_end = p->childs[2];
             check_type_equal(type_synthesis(exprnode_beg, global_tb, local_tbstk), VALUETYPE_INT);
             check_type_equal(type_synthesis(exprnode_end, global_tb, local_tbstk), VALUETYPE_INT);
+            LLVMIntPredicate prdicate = LLVMIntNE;
+            if (op->tok == OP_NOTEQUA) prdicate = LLVMIntNE;
+            else if (op->tok == OP_EQUAL) prdicate = LLVMIntEQ;
+            else if (op->tok == OP_GREATER) prdicate = LLVMIntSGT;
+            else if (op->tok == OP_GREATEREQUAL) prdicate = LLVMIntSGE;
+            else if (op->tok == OP_LESS) prdicate = LLVMIntSLT;
+            else if (op->tok == OP_LESSEQUAL) prdicate = LLVMIntSLE;
+            else printf("unsupported bool operator, treated as not-equal?");
+            LLVMValueRef If = LLVMBuildICmp(
+                builder,
+                prdicate,
+                boris_codegen_expr(exprnode_beg, builder, module, global_tb, local_tbstk),
+                boris_codegen_expr(exprnode_end, builder, module, global_tb, local_tbstk),
+                ""
+            );
+            LLVMBuildCondBr(builder, If, p->true_block, p->false_block);
             break;
         }
         case NODETYPE_FUNC_DEFN: {                                                      //1068
