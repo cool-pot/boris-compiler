@@ -1,0 +1,19 @@
+*** test level 1, nested if-elsif-else
+
+global x = 1;
+
+if x == 1 then
+    print 1;
+    if x > 2 then 
+		print 11;
+	else 
+		print 12;
+	end if
+elsif x == 2 then 
+    print 2;
+elsif x == 3 then 
+    print 3;
+else 
+    print 4;
+end if
+print 5;

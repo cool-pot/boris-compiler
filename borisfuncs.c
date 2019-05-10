@@ -81,6 +81,9 @@ struct pNode *newpNode(int type, ...){
     parent->line = yylloc.first_line;
     parent->childscount = num;
     parent->pnodetype = type;
+    parent->true_block = NULL;
+    parent->false_block = NULL;
+    parent->next_block = NULL;
     int i = 0;
     for ( ; i < num; i++ ) {
         parent->childs[i] = va_arg ( arguments, struct pNode * ); 
@@ -178,7 +181,7 @@ void printManySpace(int count){
 }
 
 void visualize(struct pNode *p, int level){
-    if (level == 0) printf("Start parse tree visualization:\n\n"); 
+    if (level == 0) printf("Start parse tree visualization:\n"); 
     if (p == NULL) {
         printManySpace(level*4);
         printf("[EMPTY_NODE]\n"); 
@@ -850,12 +853,13 @@ int determine_return_valuetype(struct pNode* p, int formal_paramter_valuetype, s
     return return_type;
 }
 
+
 void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk,  \
                                                         LLVMBuilderRef builder, LLVMModuleRef module){
     if (p == NULL) return;
     switch(p->pnodetype){
         case NODETYPE_ROOT_INPUT:{
-            printf("> Start walking on parse tree:\n\n");
+            printf("> Start walking on parse tree:\n");
             treewalker(p->childs[0], global_tb, local_tbstk, builder, module);
             break;
         }
@@ -865,12 +869,6 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         case NODETYPE_DECL_AS_SDD:                                                     //1070
         case NODETYPE_DEFN_AS_SDD:                                                     //1071
         case NODETYPE_SDD_LIST:                                                        //1072
-        // the type checking with in control flow, will just fall through
-        case NODETYPE_ELSIF_SENTENCE:                                                  //1048
-        case NODETYPE_ELSE_SENTENCE:                                                   //1049
-        case NODETYPE_ELSIF_SENTENCE_LIST:                                             //1050
-        case NODETYPE_IF_STATEMENT:                                                    //1051
-        case NODETYPE_IF_ELSE_STATEMENT:                                               //1052
         //leaf - keyword place holder
         case NODETYPE_PLACEHOLDER:                                                     //1026
         {
@@ -882,10 +880,10 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             struct pNode* boolnode = p->childs[1];
             struct pNode* stmtsnode = p->childs[3];
             LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
-            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_init");
-            LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_check");
-            LLVMBasicBlockRef BodyBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_body");
-            LLVMBasicBlockRef EndBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_end");
+            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_init_");
+            LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_check_");
+            LLVMBasicBlockRef BodyBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_body_");
+            LLVMBasicBlockRef EndBasicBlock = LLVMAppendBasicBlock(MainFunction, "while_end_");
             LLVMBuildBr(builder, InitBasicBlock);
             LLVMPositionBuilderAtEnd(builder, InitBasicBlock);
             LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
@@ -894,7 +892,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             boolnode->true_block = BodyBasicBlock;
             boolnode->false_block = EndBasicBlock;
             treewalker(boolnode, global_tb, local_tbstk, builder, module);
-            // build statement list
+            // build statement_list
             LLVMPositionBuilderAtEnd(builder, BodyBasicBlock);
             treewalker(stmtsnode, global_tb, local_tbstk, builder, module);
             LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
@@ -902,6 +900,112 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             LLVMPositionBuilderAtEnd(builder, EndBasicBlock);
             break;
         }
+        case NODETYPE_IF_STATEMENT: {                                                   //1051
+            struct pNode* boolnode = p->childs[1];
+            struct pNode* stmtsnode = p->childs[3];
+            struct pNode* elslistsnode = p->childs[4];
+            LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
+            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_init_");
+            LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_check_");
+            LLVMBasicBlockRef ConditionOneBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_condition_one_");
+            LLVMBasicBlockRef ConditionTwoBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_condition_two_");
+            LLVMBasicBlockRef NextBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_next_");
+            if (elslistsnode != NULL) elslistsnode->next_block = NextBasicBlock;
+            LLVMBuildBr(builder, InitBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, InitBasicBlock);
+            LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
+            // build bool code in CheckBasicBlock
+            LLVMPositionBuilderAtEnd(builder, CheckBasicBlock);
+            boolnode->true_block = ConditionOneBasicBlock;
+            boolnode->false_block = ConditionTwoBasicBlock;
+            treewalker(boolnode, global_tb, local_tbstk, builder, module);
+            // build statement_list in condition_one
+            LLVMPositionBuilderAtEnd(builder, ConditionOneBasicBlock);
+            treewalker(stmtsnode, global_tb, local_tbstk, builder, module);
+            LLVMBuildBr(builder, NextBasicBlock); 
+            // build elsif_sentence_list in condition_two
+            LLVMPositionBuilderAtEnd(builder, ConditionTwoBasicBlock);
+            treewalker(elslistsnode, global_tb, local_tbstk, builder, module);
+            // put builder at end
+            LLVMBuildBr(builder, NextBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, NextBasicBlock);
+            break;
+        }
+        case NODETYPE_IF_ELSE_STATEMENT: {                                              //1052
+            //KW_IF bool_expr KW_THEN statement_list elsif_sentence_list else_sentence KW_END KW_IF
+            struct pNode* boolnode = p->childs[1];
+            struct pNode* stmtsnode = p->childs[3];
+            struct pNode* elslistsnode = p->childs[4];
+            struct pNode* elsenode = p->childs[5];
+            LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
+            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_init_");
+            LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_check_");
+            LLVMBasicBlockRef ConditionOneBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_condition_one_");
+            LLVMBasicBlockRef ConditionTwoBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_condition_two_");
+            LLVMBasicBlockRef NextBasicBlock = LLVMAppendBasicBlock(MainFunction, "if_next_");
+            if (elslistsnode != NULL) elslistsnode->next_block = NextBasicBlock;
+            LLVMBuildBr(builder, InitBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, InitBasicBlock);
+            LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
+            // build bool code in CheckBasicBlock
+            LLVMPositionBuilderAtEnd(builder, CheckBasicBlock);
+            boolnode->true_block = ConditionOneBasicBlock;
+            boolnode->false_block = ConditionTwoBasicBlock;
+            treewalker(boolnode, global_tb, local_tbstk, builder, module);
+            // build statement_list in condition_one
+            LLVMPositionBuilderAtEnd(builder, ConditionOneBasicBlock);
+            treewalker(stmtsnode, global_tb, local_tbstk, builder, module);
+            LLVMBuildBr(builder, NextBasicBlock); 
+            // build elsif_sentence_list in condition_two
+            LLVMPositionBuilderAtEnd(builder, ConditionTwoBasicBlock);
+            treewalker(elslistsnode, global_tb, local_tbstk, builder, module);
+            // build else_sentence (builder now should in a condition two block)
+            treewalker(elsenode, global_tb, local_tbstk, builder, module);
+            // put builder at end
+            LLVMBuildBr(builder, NextBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, NextBasicBlock);
+            break;
+        }
+        case NODETYPE_ELSE_SENTENCE:    {                                               //1049
+            struct pNode* stmtsnode = p->childs[1];
+            treewalker(stmtsnode, global_tb, local_tbstk, builder, module);
+            break;
+        }
+        case NODETYPE_ELSIF_SENTENCE_LIST: {                                            //1050
+            for (int i = 0; i < p->childscount; i++){
+                if (p->childs[i] != NULL) {
+                    p->childs[i]->next_block = p->next_block;
+                    treewalker(p->childs[i], global_tb, local_tbstk, builder, module);
+                }
+            }
+            break;
+        }
+        case NODETYPE_ELSIF_SENTENCE: {                                                 //1048
+            // KW_ELSIF bool_expr KW_THEN statement_list
+            struct pNode* boolnode = p->childs[1];
+            struct pNode* stmtsnode = p->childs[3];
+            LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
+            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(MainFunction, "else_init_");
+            LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(MainFunction, "else_check_");
+            LLVMBasicBlockRef ConditionOneBasicBlock = LLVMAppendBasicBlock(MainFunction, "else_condition_one_");
+            LLVMBasicBlockRef ConditionTwoBasicBlock = LLVMAppendBasicBlock(MainFunction, "else_condition_two_");
+            LLVMBuildBr(builder, InitBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, InitBasicBlock);
+            LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
+            // build bool code in CheckBasicBlock
+            LLVMPositionBuilderAtEnd(builder, CheckBasicBlock);
+            boolnode->true_block = ConditionOneBasicBlock;
+            boolnode->false_block = ConditionTwoBasicBlock;
+            treewalker(boolnode, global_tb, local_tbstk, builder, module);
+            // build statement_list in condition_one
+            LLVMPositionBuilderAtEnd(builder, ConditionOneBasicBlock);
+            treewalker(stmtsnode, global_tb, local_tbstk, builder, module);
+            LLVMBuildBr(builder, p->next_block);
+            // put builder to condition_two
+            LLVMPositionBuilderAtEnd(builder, ConditionTwoBasicBlock);
+            break;
+        }
+
         case NODETYPE_LHS_ASSIGN_EXPR_AS_STATEMENT: {                                   //1044
             //lhs OP_ASSIGN expr OP_SEMI
             struct pNode* lhsnode = p->childs[0]; 

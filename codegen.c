@@ -248,7 +248,7 @@ void verify_llvm_module_and_output(LLVMModuleRef module){
     char *print_error = NULL;
     LLVMVerifyModule(module, LLVMAbortProcessAction, &verify_error);
     LLVMDisposeMessage(verify_error);
-    LLVMWriteBitcodeToFile(module, "a.bc");
+    LLVMWriteBitcodeToFile(module, "a.o");
     LLVMPrintModuleToFile(module, "a.ll", &print_error);
     LLVMDisposeMessage(print_error);
 }

@@ -90,8 +90,9 @@ struct pNode {
   int pnodetype;
   int line;
   int childscount;
-  LLVMBasicBlockRef true_block; // reserved for boolexpr
-  LLVMBasicBlockRef false_block;// reserved for boolexpr 
+  LLVMBasicBlockRef true_block; // reserved for bool-expr
+  LLVMBasicBlockRef false_block;// reserved for bool-expr
+  LLVMBasicBlockRef next_block; // reserved for control-flow-sentence
   struct pNode* childs[PARSE_TREE_MAX_CHILD];
 };
 
