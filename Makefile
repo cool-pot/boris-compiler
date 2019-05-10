@@ -34,8 +34,5 @@ parser: borisfuncs.o boris.lex.o  boris.tab.o  codegen.o symboltable.o parser.o
 scanner: borisfuncs.o boris.lex.o  boris.tab.o  codegen.o symboltable.o parser.o
 	$(LD) boris.lex.o  boris.tab.o symboltable.o codegen.o borisfuncs.o scanner.o $(LLVMLDFLAGS) -o $@
 
-a.ll: a.bc
-	llvm-dis a.bc
-
 a.out: a.ll
 	clang a.ll -o a.out
