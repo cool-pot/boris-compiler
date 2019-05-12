@@ -209,6 +209,8 @@ void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int
 void remove_symbol(char* sval, int scope, int line, struct symboltable* tb);
 void print_symboltableRecord(struct symboltableRecord* record);
 
+/*borisfuncs*/
+struct symboltable* get_matched_symboltable(char* sval, struct symboltable* global_tb, struct symboltableStack* local_tbstk);
 
 /*code generator*/
 LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLVMModuleRef module, struct symboltable* global_tb, struct symboltableStack* local_tbstk);

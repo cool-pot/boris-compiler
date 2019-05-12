@@ -445,6 +445,7 @@ struct symboltable* get_matched_symboltable(char* sval, struct symboltable* glob
     if(g_record){
         return global_tb;
     }
+    printf("matched symboltb not found for %s\n", sval);
     return NULL;
 }
 
@@ -503,6 +504,40 @@ int get_node_depth(struct pNode* p){
         }
         default:
             return 0;
+    }
+}
+
+//calculate expr width
+int get_expr_width(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk){
+    if (p == NULL) return 0;
+    switch (p->pnodetype){
+        case NODETYPE_EXPR_COMMA_EXPR:
+            return get_expr_width(p->childs[0], global_tb, local_tbstk) + get_expr_width(p->childs[2], global_tb, local_tbstk);
+        case NODETYPE_SINGLE_INT_AS_EXPR:
+        case NODETYPE_TUPLE_REF_AS_EXPR:
+        case NODETYPE_ARRAY_REF_AS_EXPR:
+        case NODETYPE_EXPR_MINUS_EXPR:
+        case NODETYPE_EXPR_PLUS_EXPR:
+        case NODETYPE_EXPR_MULT_EXPR:
+        case NODETYPE_EXPR_DIV_EXPR:
+            return 1;
+        case NODETYPE_SINGLE_ID_AS_EXPR:{
+            struct sNode * snode = (struct sNode *)(p->childs[0]);
+            struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+            if (record->valuetype == VALUETYPE_LINK_TO_GLOBAL) {
+                //replace if it's a link to global table.
+                record = lookup_symbol(snode->sval,GLOBAL_SCOPE, global_tb);
+            }
+            if (record->valuetype == VALUETYPE_INT) {
+                return 1;
+            } else if (record->valuetype == VALUETYPE_TUPLE) {
+                return record->value->ivallistlength;
+            }
+        } 
+        default:
+            printf("get_expr_width with bad nodetype %d, tuple creation may get bad size\n",p->pnodetype);
+            return 1;
     }
 }
 
@@ -1020,37 +1055,53 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 exit(999);
             }
             // lhs has depth 1, if lhs is unknown type, update type. otherwise check equal.
-            struct pNode* lhsitem = p->childs[0];
-            struct pNode* singleid_as_lhsitem = lhsitem->childs[0];
-            struct sNode* snode = (struct sNode*) singleid_as_lhsitem->childs[0];
-            if (lhstype == VALUETYPE_UNKNOWN) {
+            if (lhsnode->childs[0]->pnodetype == NODETYPE_SINGLE_ID_AS_LHSITEM) {
+                struct pNode* singleid_as_lhsitem = lhsnode->childs[0];
+                struct sNode* snode = (struct sNode*) singleid_as_lhsitem->childs[0];
+                if (lhstype == VALUETYPE_UNKNOWN) {
+                    struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+                    if (matched_tb) {
+                        set_symbol_type(snode->sval, exprtype, matched_tb->scope, snode->line, matched_tb);
+                    } else{
+                        fprintf(stderr, RED"[treewalker] assign unknown value failed. in line %d"RESET, p->line);
+                        exit(999);
+                    }
+                } else {
+                    check_type_equal(lhstype, exprtype);
+                }
+                //update value in lhs address
                 struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
-                if (matched_tb) {
-                    set_symbol_type(snode->sval, exprtype, matched_tb->scope, snode->line, matched_tb);
-                } else{
-                    fprintf(stderr, RED"[treewalker] assign unknown value failed. in line %d"RESET, p->line);
-                    exit(999);
+                struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+                if (record->valuetype == VALUETYPE_INT) {
+                    if (record->value == NULL){ 
+                        init_int_symbol(snode->sval, matched_tb->scope, snode->line, matched_tb);
+                        update_int_symbol(snode->sval, matched_tb->scope, 1, snode->line, matched_tb);
+                        record->value->address= LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
+                    }
+                } else {
+                    printf("lhs single id assign, no implementation\n");
+                    exit(666);
                 }
+                LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
+                LLVMValueRef lhs = record->value->address;
+                LLVMBuildStore(builder, expr_code, lhs);
+            } else if (lhsnode->childs[0]->pnodetype == NODETYPE_ARRAY_REF_AS_LHSITEM){
+                struct pNode* arrayref_as_lhsitem = lhsnode->childs[0];
+                struct sNode* snode = (struct sNode*) arrayref_as_lhsitem->childs[0];
+                struct pNode* exprnode = arrayref_as_lhsitem->childs[2];
+                struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+                struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+                LLVMValueRef array_address = record->value->address;
+                LLVMValueRef offset = LLVMBuildSub(builder, boris_codegen_expr(exprnode, builder, module, global_tb, local_tbstk), LLVMConstInt(LLVMInt32Type(), record->value->ivallist_start, 0), ""); // array access should consider its start point
+                LLVMValueRef indices[] = { offset };
+                LLVMValueRef element_address = LLVMBuildGEP(builder, array_address, indices, 1, "");
+                LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
+                LLVMBuildStore(builder, expr_code, element_address);
             } else {
-                check_type_equal(lhstype, exprtype);
-            }
-            //update value in lhs address
-            struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
-            struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
-            if (record->valuetype == VALUETYPE_INT) {
-                if (record->value == NULL){
-                    init_int_symbol(snode->sval, matched_tb->scope, snode->line, matched_tb);
-                    update_int_symbol(snode->sval, matched_tb->scope, 1, snode->line, matched_tb);
-                }
-            } else {
-                printf("lhs assign, no implementation\n");
+                printf("lhs type, no implementation\n");
                 exit(666);
             }
-            LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
-            //LLVMValueRef lhs = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
-            LLVMValueRef lhs = record->value->address;
-            LLVMBuildStore(builder, expr_code, lhs);
-            record->value->address = lhs;            
+                        
             break;
         }
         case NODETYPE_LHS_EXCHANGE_LHS_AS_STATEMENT: {                                  //1045
@@ -1200,14 +1251,17 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 init_int_symbol(snode->sval, GLOBAL_SCOPE, snode->line, global_tb);
                 update_int_symbol(snode->sval, GLOBAL_SCOPE, 1, snode->line, global_tb);
                 record->value->address = lhs;
-            } else {
-                printf("global decl, no implementation\n");
-                exit(666);
+            } else if (valuetype == VALUETYPE_TUPLE) {
+                int width = get_expr_width(exprnode, global_tb, local_tbstk);
+                init_int_list_symbol(snode->sval, GLOBAL_SCOPE, 0, width, snode->line, global_tb);
+                LLVMValueRef tuple_address =  LLVMBuildArrayAlloca(builder, LLVMInt32Type(), LLVMConstInt(LLVMInt32Type(), width, 0), snode->sval);
+                struct symboltableRecord* record = lookup_symbol(snode->sval, GLOBAL_SCOPE, global_tb);
+                record->value->address = tuple_address;
             }
             break;
         }
-        case NODETYPE_ARRAY_DECL:                                                       //1061
-        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC: {                                     //1062
+        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC:                                       //1062
+        case NODETYPE_ARRAY_DECL: {                                                     //1061
             //KW_ARRAY ID OP_LBRAK expr OP_DOTDOT expr OP_RBRAK OP_SEMI 
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
             struct pNode * exprnode_beg = p->childs[3];
@@ -1217,8 +1271,20 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             check_type_equal(type_synthesis(exprnode_end, global_tb, local_tbstk), VALUETYPE_INT);
             struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
             set_symbol_type(snode->sval, VALUETYPE_ARRAY, matched_tb->scope, snode->line, matched_tb);
+            // restrict the expr to be a SINGLE_INT_AS_EXPR in the following
+            if (exprnode_beg->pnodetype != NODETYPE_SINGLE_INT_AS_EXPR || exprnode_end->pnodetype != NODETYPE_SINGLE_INT_AS_EXPR) {
+                printf("array decl, only allow integers now, no implementation\n");
+                exit(666);
+            }
+            int beg = ((struct iNode *)exprnode_beg->childs[0])->ival;
+            int end = ((struct iNode *)exprnode_end->childs[0])->ival;
+            init_int_list_symbol(snode->sval, matched_tb->scope, beg, end-beg+1, snode->line, matched_tb);
+            LLVMValueRef array_address =  LLVMBuildArrayAlloca(builder, LLVMInt32Type(), LLVMConstInt(LLVMInt32Type(), end-beg+1, 0), snode->sval);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+            record->value->address = array_address;
             break;
         }
+        
         case NODETYPE_BOOLEXPR:{                                                        //1042
             //expr bool_op expr
             // only allow int in bool expr compare
