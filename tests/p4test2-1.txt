@@ -1,0 +1,18 @@
+*** test level 2, array type read & right
+global myarray;
+global i = 5;
+
+***myarray write
+array myarray[5..10];
+myarray[5] = 10;
+myarray[6] = 9;
+myarray[7] = 8;
+myarray[8] = 7;
+myarray[9] = 6;
+myarray[10] = 5;
+
+***myarray read
+while i <= 10 do
+    print myarray[i];
+    i = i+1;
+end while

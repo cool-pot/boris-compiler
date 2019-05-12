@@ -170,28 +170,26 @@ LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLV
         }
         case NODETYPE_SINGLE_ID_AS_EXPR:{
             struct sNode* snode = (struct sNode*)node->childs[0];
-            if (LOCAL_ENV){ // look at local table first if in local env. 
-                struct symboltable* local_tb =  top_symboltableStack(local_tbstk);
-                struct symboltableRecord* record = lookup_symbol(snode->sval, LOCAL_SCOPE, local_tb);
-                if (record->valuetype == VALUETYPE_INT) {
-                    LLVMValueRef ret = record->value->address;
-                    return LLVMBuildLoad(builder, ret, "load_local_tb_int_temp");
-                } else if (record->valuetype == VALUETYPE_LINK_TO_GLOBAL) {
-                    break;
-                } else {
-                    printf("codegen. no implementation\n");
-                    exit(666);
-                }
-            }
-            //look at global table.
-            struct symboltableRecord* record = lookup_symbol(snode->sval, GLOBAL_SCOPE, global_tb);
+            struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+            LLVMValueRef address = record->value->address;
             if (record->valuetype == VALUETYPE_INT) {
-                LLVMValueRef ret = record->value->address;
-                return LLVMBuildLoad(builder, ret, "load_global_tb_int_temp");
+                return LLVMBuildLoad(builder, address, "load_singleid_int_temp");
             } else {
                 printf("codegen. no implementation\n");
                 exit(666);
             }
+        }
+        case NODETYPE_ARRAY_REF_AS_EXPR:{
+            struct sNode* snode = (struct sNode*)node->childs[0];
+            struct pNode* exprnode = node->childs[2];
+            struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+            LLVMValueRef array_address = record->value->address;
+            LLVMValueRef offset = LLVMBuildSub(builder, boris_codegen_expr(exprnode, builder, module, global_tb, local_tbstk), LLVMConstInt(LLVMInt32Type(), record->value->ivallist_start, 0), ""); // array access should consider its start point
+            LLVMValueRef indices[] = { offset };
+            LLVMValueRef element_address = LLVMBuildGEP(builder, array_address, indices, 1, "");
+            return LLVMBuildLoad(builder, element_address, "load_array_ref_int_temp");
         }
     }
     return NULL;

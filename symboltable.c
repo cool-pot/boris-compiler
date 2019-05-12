@@ -207,8 +207,8 @@ void init_int_list_symbol(char* sval, int scope, int ivallist_start, int ivallis
         fprintf(stderr, RED"[symbol table error]%s, tuple index must start from 0"RESET, sval);
         exit(991);
     }
-    if (ivallistlength > MAX_TUPLE_ARRAY_SIZE) {
-        fprintf(stderr, RED"[symbol table error]%s, too long, unsupported"RESET, sval);
+    if (ivallistlength > MAX_TUPLE_ARRAY_SIZE || ivallistlength <= 0) {
+        fprintf(stderr, RED"[symbol table error]%s, too long or non-positive, unsupported"RESET, sval);
         exit(991);
     }
     // init the symbol value here
