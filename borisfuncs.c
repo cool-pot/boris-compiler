@@ -888,6 +888,51 @@ int determine_return_valuetype(struct pNode* p, int formal_paramter_valuetype, s
     return return_type;
 }
 
+// from a exprnode (EXPR_COMMA_EXPR), read all the values into results.
+void _dfs_read_values(struct pNode* exprnode, LLVMValueRef* results, int* index, struct symboltable* global_tb, struct symboltableStack* local_tbstk, LLVMBuilderRef builder, LLVMModuleRef module){
+    if (exprnode->pnodetype == NODETYPE_EXPR_COMMA_EXPR) {
+        _dfs_read_values(exprnode->childs[0], results, index, global_tb, local_tbstk, builder, module);
+        _dfs_read_values(exprnode->childs[2], results, index, global_tb, local_tbstk, builder, module);
+    } else if (exprnode->pnodetype == NODETYPE_SINGLE_INT_AS_EXPR) {
+        struct iNode* inode  = (struct iNode*)exprnode->childs[0];
+        results[(*index)++] = LLVMConstInt(LLVMInt32Type(), inode->ival, 0);
+    } else if (exprnode->pnodetype == NODETYPE_SINGLE_ID_AS_EXPR) {
+        struct sNode* snode = (struct sNode*)exprnode->childs[0];
+        struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+        struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+        if (record->valuetype == VALUETYPE_INT) {
+            results[(*index)++] = boris_codegen_expr(exprnode, builder, module, global_tb, local_tbstk);
+        } else if (record->valuetype == VALUETYPE_TUPLE) {
+            int width = record->value->ivallistlength;
+            LLVMValueRef tuple_address = record->value->address;
+            for (int i = 0; i < width; i++) {
+                LLVMValueRef offset = LLVMConstInt(LLVMInt32Type(), i, 0);
+                LLVMValueRef indices[] = { offset };
+                LLVMValueRef element_address = LLVMBuildGEP(builder, tuple_address, indices, 1, "");
+                results[(*index)++] = LLVMBuildLoad(builder, element_address, "");
+            }    
+        }
+    }
+}
+
+
+
+void read_all_values_in_expr(struct pNode* exprnode, LLVMValueRef* results, struct symboltable* global_tb, struct symboltableStack* local_tbstk, LLVMBuilderRef builder, LLVMModuleRef module){
+    int index = 0;
+    _dfs_read_values(exprnode, results, &index, global_tb, local_tbstk, builder, module);
+}
+
+//populate the results into a array address
+void populate_into_address(LLVMValueRef results[], int width, LLVMValueRef address, LLVMBuilderRef builder){
+    for (int i = 0; i < width; i++){
+        LLVMValueRef offset = LLVMConstInt(LLVMInt32Type(), i, 0); // array access should consider its start point
+        LLVMValueRef indices[] = { offset };
+        LLVMValueRef element_address = LLVMBuildGEP(builder, address, indices, 1, "");
+        LLVMValueRef expr_code = results[i];
+        LLVMBuildStore(builder, expr_code, element_address);
+    }
+}
+
 
 void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk,  \
                                                         LLVMBuilderRef builder, LLVMModuleRef module){
@@ -1073,18 +1118,32 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
                 struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
                 if (record->valuetype == VALUETYPE_INT) {
+                    // int assign
                     if (record->value == NULL){ 
                         init_int_symbol(snode->sval, matched_tb->scope, snode->line, matched_tb);
                         update_int_symbol(snode->sval, matched_tb->scope, 1, snode->line, matched_tb);
                         record->value->address= LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
                     }
+                    LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
+                    LLVMValueRef lhs = record->value->address;
+                    LLVMBuildStore(builder, expr_code, lhs);
                 } else {
-                    printf("lhs single id assign, no implementation\n");
-                    exit(666);
+                    // tuple assign
+                    int width = get_expr_width(exprnode, global_tb, local_tbstk);
+                    if (record->value == NULL){ 
+                        init_int_list_symbol(snode->sval, GLOBAL_SCOPE, 0, width, snode->line, global_tb);
+                    } else {
+                        //update the expected length of tuple
+                        record->value->ivallistlength = width;
+                    }
+                    // allocate tuple
+                    LLVMValueRef tuple_address =  LLVMBuildArrayAlloca(builder, LLVMInt32Type(), LLVMConstInt(LLVMInt32Type(), width, 0), snode->sval);
+                    record->value->address = tuple_address;
+                    // populate tuple
+                    LLVMValueRef results[width];
+                    read_all_values_in_expr(exprnode, results, global_tb, local_tbstk, builder, module);
+                    populate_into_address(results, width, tuple_address, builder);
                 }
-                LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
-                LLVMValueRef lhs = record->value->address;
-                LLVMBuildStore(builder, expr_code, lhs);
             } else if (lhsnode->childs[0]->pnodetype == NODETYPE_ARRAY_REF_AS_LHSITEM){
                 struct pNode* arrayref_as_lhsitem = lhsnode->childs[0];
                 struct sNode* snode = (struct sNode*) arrayref_as_lhsitem->childs[0];
@@ -1097,7 +1156,19 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 LLVMValueRef element_address = LLVMBuildGEP(builder, array_address, indices, 1, "");
                 LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
                 LLVMBuildStore(builder, expr_code, element_address);
-            } else {
+            } else if (lhsnode->childs[0]->pnodetype == NODETYPE_TUPLE_REF_AS_LHSITEM){
+                struct pNode* tupleref_as_lhsitem = lhsnode->childs[0];
+                struct sNode* snode = (struct sNode*) tupleref_as_lhsitem->childs[0];
+                struct pNode* exprnode = tupleref_as_lhsitem->childs[2];
+                struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+                struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+                LLVMValueRef tuple_address = record->value->address;
+                LLVMValueRef offset = boris_codegen_expr(exprnode, builder, module, global_tb, local_tbstk);
+                LLVMValueRef indices[] = { offset };
+                LLVMValueRef element_address = LLVMBuildGEP(builder, tuple_address, indices, 1, "");
+                LLVMValueRef expr_code = boris_codegen_expr(p->childs[2], builder, module, global_tb, local_tbstk);
+                LLVMBuildStore(builder, expr_code, element_address);
+            }else {
                 printf("lhs type, no implementation\n");
                 exit(666);
             }
@@ -1253,10 +1324,15 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 record->value->address = lhs;
             } else if (valuetype == VALUETYPE_TUPLE) {
                 int width = get_expr_width(exprnode, global_tb, local_tbstk);
+                // allocate tuple
                 init_int_list_symbol(snode->sval, GLOBAL_SCOPE, 0, width, snode->line, global_tb);
                 LLVMValueRef tuple_address =  LLVMBuildArrayAlloca(builder, LLVMInt32Type(), LLVMConstInt(LLVMInt32Type(), width, 0), snode->sval);
                 struct symboltableRecord* record = lookup_symbol(snode->sval, GLOBAL_SCOPE, global_tb);
                 record->value->address = tuple_address;
+                // populate tuple
+                LLVMValueRef results[width];
+                read_all_values_in_expr(exprnode, results, global_tb, local_tbstk, builder, module);
+                populate_into_address(results, width, tuple_address, builder);
             }
             break;
         }
