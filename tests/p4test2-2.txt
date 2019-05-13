@@ -1,2 +1,30 @@
-global x = 1,2,3;
-global y = x,1,x;
+*** test level 2, tuple type read & right
+global const = 3;
+global x;
+x = 1,2,const;
+global y = 0,x,4,x;
+global i = 0;
+
+*** tuple read
+print y.0;
+print y.1;
+print y.2;
+print y.3;
+print y.4;
+print y.5;
+print y.6;
+print y.7;
+
+
+***tuple wirte
+y.5 = 555;
+y.6 = 666;
+y.7 = 777;
+print y.0;
+print y.1;
+print y.2;
+print y.3;
+print y.4;
+print y.5;
+print y.6;
+print y.7;

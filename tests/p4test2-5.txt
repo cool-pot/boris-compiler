@@ -1,0 +1,17 @@
+*** test level 2, print array, print tuple
+global myarray;
+global mytuple = 1,2,3;
+
+***print array
+array myarray[5..10];
+myarray[5] = 10;
+myarray[6] = 9;
+myarray[7] = 8;
+myarray[8] = 7;
+myarray[9] = 6;
+myarray[10] = 5;
+print myarray;
+
+***print tuple
+print mytuple;
+print 0,mytuple,4,5;

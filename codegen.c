@@ -191,6 +191,17 @@ LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLV
             LLVMValueRef element_address = LLVMBuildGEP(builder, array_address, indices, 1, "");
             return LLVMBuildLoad(builder, element_address, "load_array_ref_int_temp");
         }
+        case NODETYPE_TUPLE_REF_AS_EXPR:{
+            struct sNode* snode = (struct sNode*)node->childs[0];
+            struct pNode* exprnode = node->childs[2];
+            struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+            LLVMValueRef tuple_address = record->value->address;
+            LLVMValueRef offset = boris_codegen_expr(exprnode, builder, module, global_tb, local_tbstk);
+            LLVMValueRef indices[] = { offset };
+            LLVMValueRef element_address = LLVMBuildGEP(builder, tuple_address, indices, 1, "");
+            return LLVMBuildLoad(builder, element_address, "load_tuple_ref_int_temp");
+        }
     }
     return NULL;
 }
