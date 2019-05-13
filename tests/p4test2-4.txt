@@ -1,0 +1,6 @@
+*** test level 2, foreach range
+global beg = 5;
+
+foreach myitem in beg..15 do
+    print myitem;
+end for

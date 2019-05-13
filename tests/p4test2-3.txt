@@ -1,0 +1,10 @@
+*** test level 2, foreach array
+global myarray;
+array myarray[10..12];
+myarray[10] = 0;
+myarray[11] = 1;
+myarray[12] = 2;
+
+foreach myitem in myarray do
+    print myitem;
+end for

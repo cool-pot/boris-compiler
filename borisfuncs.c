@@ -933,6 +933,12 @@ void populate_into_address(LLVMValueRef results[], int width, LLVMValueRef addre
     }
 }
 
+//global_temp_string_count
+//used in treewalker, to generate a temp string
+int global_temp_string_count = 0; 
+void get_temp_string(char* temp_string){
+    sprintf(temp_string, "_temp_id_%d", global_temp_string_count++);
+}
 
 void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk,  \
                                                         LLVMBuilderRef builder, LLVMModuleRef module){
@@ -1186,6 +1192,10 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 fprintf(stderr, RED"[treewalker] exchange failed. unequal length. in line %d"RESET, p->line);
                 exit(999);
             }
+            if(get_node_depth(left_lhsnode) != 1){
+                fprintf(stderr, RED"[treewalker] exchange failed. only support length 1 %d"RESET, p->line);
+                exit(999);
+            }
             break;
         }
         case NODETYPE_FOREACH_RANGE_STATEMENT: {                                        //1053
@@ -1193,25 +1203,123 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             struct sNode* snode = (struct sNode*) p->childs[1]->childs[0];
             struct pNode* rangenode = p->childs[3];
             struct pNode* endfornode = p->childs[7];
-            declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb);
+            struct pNode* stmtsnode = p->childs[5];
+            struct symboltableRecord* record_item = declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb);
             check_type_equal(type_synthesis(rangenode->childs[0], global_tb, local_tbstk), VALUETYPE_INT);
             check_type_equal(type_synthesis(rangenode->childs[2], global_tb, local_tbstk), VALUETYPE_INT);
-            for (int i = 4; i < p->childscount; i++)
-                treewalker(p->childs[i], global_tb, local_tbstk, builder, module);
+            // implemented like a while loop
+            LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
+            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(MainFunction, "foreachr_init_");
+            LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(MainFunction, "foreachr_check_");
+            LLVMBasicBlockRef BodyBasicBlock = LLVMAppendBasicBlock(MainFunction, "foreachr_body_");
+            LLVMBasicBlockRef EndBasicBlock = LLVMAppendBasicBlock(MainFunction, "foreachr_end_");
+            
+            LLVMBuildBr(builder, InitBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, InitBasicBlock);
+            // assign beg_value to temp
+            init_int_symbol(snode->sval, GLOBAL_SCOPE, snode->line, global_tb);
+            LLVMValueRef item_address = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
+            record_item->value->address = item_address;
+            LLVMValueRef beg_value = boris_codegen_expr(rangenode->childs[0], builder, module, global_tb, local_tbstk);
+            LLVMValueRef end_value = boris_codegen_expr(rangenode->childs[2], builder, module, global_tb, local_tbstk);
+            LLVMBuildStore(builder, beg_value, record_item->value->address);
+            LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
+            LLVMPositionBuilderAtEnd(builder, CheckBasicBlock);
+            // build bool code in CheckBasicBlock
+            LLVMIntPredicate prdicate = LLVMIntSLE;
+            LLVMValueRef If = LLVMBuildICmp(
+                builder,
+                prdicate,
+                LLVMBuildLoad(builder, item_address, ""),
+                end_value,
+                ""
+            );
+            LLVMBuildCondBr(builder, If, BodyBasicBlock, EndBasicBlock);
+            // build statement_list
+            LLVMPositionBuilderAtEnd(builder, BodyBasicBlock);
+            treewalker(stmtsnode, global_tb, local_tbstk, builder, module);
+            // item++
+            LLVMValueRef One32 = LLVMConstInt(LLVMInt32Type(), 1, 0);
+            LLVMValueRef item_plus_plus =  LLVMBuildAdd(builder, LLVMBuildLoad(builder, item_address, ""), One32, "");
+            LLVMBuildStore(builder, item_plus_plus, record_item->value->address);
+            LLVMBuildBr(builder, CheckBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, EndBasicBlock);
+             // remove the item
             remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
             break;
         }
         case NODETYPE_FOREACH_ARRAYID_STATEMENT: {                                      //1055
             // the temp iterator id is treated as a temprary global id, will remove it after this statement
+            char temp_string[20];
+            get_temp_string(temp_string);
             struct sNode* snode = (struct sNode*) p->childs[1]->childs[0];
             struct pNode* arrayidnode = p->childs[3];
             struct sNode* arraynamenode = (struct sNode*) arrayidnode->childs[0];
             struct pNode* endfornode = p->childs[7];
-            declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb);
+            struct symboltableRecord* record_item = declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb); //iter_item
+            struct symboltableRecord* record_item_index = declare_symbol(temp_string, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb); //iter_item_index
+            struct symboltable* matched_tb = get_matched_symboltable(arraynamenode->sval, global_tb, local_tbstk);
+            struct symboltableRecord* record_array = lookup_symbol(arraynamenode->sval, matched_tb->scope, matched_tb);
             check_type_equal(type_lookup(arraynamenode->sval, global_tb, local_tbstk), VALUETYPE_ARRAY);
-            for (int i = 4; i < p->childscount; i++)
-                treewalker(p->childs[i], global_tb, local_tbstk, builder, module);
+            // simulate a boolexpr node
+            struct pNode* simulated_index = newpNode(NODETYPE_SINGLE_ID_AS_EXPR, 1, newsNode(temp_string));
+            struct pNode* simulated_boolop = newplaceholderNode(OP_LESS);
+            struct pNode* simulated_length = newpNode(NODETYPE_SINGLE_INT_AS_EXPR, 1, newiNode(record_array->value->ivallistlength));
+            struct pNode* simulated_boolexpr = newpNode(NODETYPE_BOOLEXPR, 3, simulated_index, simulated_boolop, simulated_length);
+            struct pNode* stmtsnode = p->childs[5];
+            
+            // implemented like a while loop
+            LLVMValueRef MainFunction = LLVMGetNamedFunction(module, "main");
+            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(MainFunction, "foreacha_init_");
+            LLVMBasicBlockRef CheckBasicBlock = LLVMAppendBasicBlock(MainFunction, "foreacha_check_");
+            LLVMBasicBlockRef BodyBasicBlock = LLVMAppendBasicBlock(MainFunction, "foreacha_body_");
+            LLVMBasicBlockRef EndBasicBlock = LLVMAppendBasicBlock(MainFunction, "foreacha_end_");
+            LLVMBuildBr(builder, InitBasicBlock);
+            LLVMPositionBuilderAtEnd(builder, InitBasicBlock);
+            // assign 0 to item_index
+            LLVMValueRef Zero32 = LLVMConstInt(LLVMInt32Type(), 0, 0);
+            LLVMValueRef One32 = LLVMConstInt(LLVMInt32Type(), 1, 0);
+            LLVMValueRef item_index_address = LLVMBuildAlloca(builder, LLVMInt32Type(), temp_string);
+            LLVMValueRef item_address = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
+            LLVMValueRef array_address = record_array->value->address;
+            LLVMBuildStore(builder, Zero32, item_index_address);
+            init_int_symbol(snode->sval, GLOBAL_SCOPE, snode->line, global_tb);
+            update_int_symbol(snode->sval, GLOBAL_SCOPE, 1, snode->line, global_tb);
+            init_int_symbol(temp_string, GLOBAL_SCOPE, snode->line, global_tb);
+            update_int_symbol(temp_string, GLOBAL_SCOPE, 1, snode->line, global_tb);
+            record_item_index->value->address = item_index_address;
+            record_item->value->address = item_address;
+            //load array[0] to item
+            LLVMValueRef offset = boris_codegen_expr(simulated_index, builder, module, global_tb, local_tbstk);
+            LLVMValueRef indices[] = { offset };
+            LLVMValueRef element_address = LLVMBuildGEP(builder, array_address, indices, 1, "");
+            LLVMBuildStore(builder, LLVMBuildLoad(builder, element_address, ""), record_item->value->address);
+            LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
+            // build bool code in CheckBasicBlock
+            LLVMPositionBuilderAtEnd(builder, CheckBasicBlock);
+            simulated_boolexpr->true_block = BodyBasicBlock;
+            simulated_boolexpr->false_block = EndBasicBlock;
+            treewalker(simulated_boolexpr, global_tb, local_tbstk, builder, module);
+            // build statement_list
+            LLVMPositionBuilderAtEnd(builder, BodyBasicBlock);
+            treewalker(stmtsnode, global_tb, local_tbstk, builder, module);
+            // index++, load a new value to item
+            LLVMValueRef index_plus_plus =  LLVMBuildAdd(builder, boris_codegen_expr(simulated_index, builder, module, global_tb, local_tbstk), One32, "");
+            LLVMBuildStore(builder, index_plus_plus, record_item_index->value->address);
+            LLVMValueRef loop_offset = boris_codegen_expr(simulated_index, builder, module, global_tb, local_tbstk);
+            LLVMValueRef loop_indices[] = { loop_offset };
+            LLVMValueRef loop_element_address = LLVMBuildGEP(builder, array_address, loop_indices, 1, "");
+            LLVMBuildStore(builder, LLVMBuildLoad(builder, loop_element_address, ""), record_item->value->address);
+            LLVMBuildBr(builder, CheckBasicBlock); // build unconditional jump to check block.
+            // put builder at end
+            LLVMPositionBuilderAtEnd(builder, EndBasicBlock);
+            // remove the item, item_index, and clean up simluated node
             remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
+            remove_symbol(temp_string, GLOBAL_SCOPE, endfornode->line, global_tb);
+            free(simulated_index);
+            free(simulated_boolop);
+            free(simulated_length);
+            free(simulated_boolexpr);
             break;
         }
         case NODETYPE_PRINT_STATEMENT: {                                                //1056
@@ -1220,23 +1328,212 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
             int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE};
             check_type_in_list(valuetype, truthlist, 3);
-            
-            LLVMValueRef expr_code = boris_codegen_expr(p->childs[1], builder, module, global_tb, local_tbstk);
-            LLVMValueRef format_int = LLVMBuildGlobalStringPtr(
-                builder,
-                "%d\n",
-                "format_int"
-            );
-            LLVMValueRef PrintfArgs[] = { format_int, expr_code };
-            LLVMValueRef PrintfFunction = LLVMGetNamedFunction(module, "printf");
-            LLVMBuildCall(
-                builder,
-                PrintfFunction,
-                PrintfArgs,
-                2,
-                ""
-            );
-
+            if (valuetype == VALUETYPE_INT) {
+                LLVMValueRef expr_code = boris_codegen_expr(p->childs[1], builder, module, global_tb, local_tbstk);
+                LLVMValueRef format_int = LLVMBuildGlobalStringPtr(
+                    builder,
+                    "%d\n",
+                    "format_int"
+                );
+                LLVMValueRef PrintfArgs[] = { format_int, expr_code };
+                LLVMValueRef PrintfFunction = LLVMGetNamedFunction(module, "printf");
+                LLVMBuildCall(
+                    builder,
+                    PrintfFunction,
+                    PrintfArgs,
+                    2,
+                    ""
+                );
+            } else if (valuetype == VALUETYPE_ARRAY) {
+                struct sNode* snode = (struct sNode*)exprnode->childs[0];
+                struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+                struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+                int width = record->value->ivallistlength;
+                LLVMValueRef format_int_0 = LLVMBuildGlobalStringPtr(
+                    builder,
+                    "%d,",
+                    "format_int_0"
+                );
+                LLVMValueRef format_int_1 = LLVMBuildGlobalStringPtr(
+                    builder,
+                    "%d",
+                    "format_int_1"
+                );
+                LLVMValueRef format_array_beg = LLVMBuildGlobalStringPtr(builder, "[", "format_array_beg");
+                LLVMValueRef format_array_end = LLVMBuildGlobalStringPtr(builder, "]\n", "format_array_end");
+                LLVMValueRef PrintfArgsArrayBeg[] = { format_array_beg };
+                LLVMValueRef PrintfArgsArrayEnd[] = { format_array_end };
+                LLVMValueRef PrintfFunction = LLVMGetNamedFunction(module, "printf");
+                LLVMBuildCall(
+                    builder,
+                    PrintfFunction,
+                    PrintfArgsArrayBeg,
+                    1,
+                    ""
+                );
+                for (int i = 0; i < width; i++){
+                    LLVMValueRef offset = LLVMConstInt(LLVMInt32Type(), i, 0); // array access should consider its start point
+                    LLVMValueRef indices[] = { offset };
+                    LLVMValueRef element_address = LLVMBuildGEP(builder, record->value->address, indices, 1, "");
+                    LLVMValueRef expr_code = LLVMBuildLoad(builder, element_address, "");
+                    if ( i < width-1){
+                        LLVMValueRef PrintfArgs[] = { format_int_0, expr_code };
+                        LLVMBuildCall(
+                            builder,
+                            PrintfFunction,
+                            PrintfArgs,
+                            2,
+                            ""
+                        );
+                    } else {
+                        LLVMValueRef PrintfArgs[] = { format_int_1, expr_code };
+                        LLVMBuildCall(
+                            builder,
+                            PrintfFunction,
+                            PrintfArgs,
+                            2,
+                            ""
+                        );
+                    }
+                }
+                LLVMBuildCall(
+                    builder,
+                    PrintfFunction,
+                    PrintfArgsArrayEnd,
+                    1,
+                    ""
+                );
+            } else if (valuetype == VALUETYPE_TUPLE && exprnode->pnodetype == NODETYPE_SINGLE_ID_AS_EXPR) {
+                struct sNode* snode = (struct sNode*)exprnode->childs[0];
+                struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+                struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+                int width = record->value->ivallistlength;
+                LLVMValueRef format_int_0 = LLVMBuildGlobalStringPtr(
+                    builder,
+                    "%d,",
+                    "format_int_0"
+                );
+                LLVMValueRef format_int_1 = LLVMBuildGlobalStringPtr(
+                    builder,
+                    "%d",
+                    "format_int_1"
+                );
+                LLVMValueRef format_tuple_beg = LLVMBuildGlobalStringPtr(builder, "(", "format_tuple_beg");
+                LLVMValueRef format_tuple_end = LLVMBuildGlobalStringPtr(builder, ")\n", "format_tuple_end");
+                LLVMValueRef PrintfArgsTupleBeg[] = { format_tuple_beg };
+                LLVMValueRef PrintfArgsTupleEnd[] = { format_tuple_end };
+                LLVMValueRef PrintfFunction = LLVMGetNamedFunction(module, "printf");
+                LLVMBuildCall(
+                    builder,
+                    PrintfFunction,
+                    PrintfArgsTupleBeg,
+                    1,
+                    ""
+                );
+                for (int i = 0; i < width; i++){
+                    LLVMValueRef offset = LLVMConstInt(LLVMInt32Type(), i, 0); // array access should consider its start point
+                    LLVMValueRef indices[] = { offset };
+                    LLVMValueRef element_address = LLVMBuildGEP(builder, record->value->address, indices, 1, "");
+                    LLVMValueRef expr_code = LLVMBuildLoad(builder, element_address, "");
+                    if ( i < width-1){
+                        LLVMValueRef PrintfArgs[] = { format_int_0, expr_code };
+                        LLVMBuildCall(
+                            builder,
+                            PrintfFunction,
+                            PrintfArgs,
+                            2,
+                            ""
+                        );
+                    } else {
+                        LLVMValueRef PrintfArgs[] = { format_int_1, expr_code };
+                        LLVMBuildCall(
+                            builder,
+                            PrintfFunction,
+                            PrintfArgs,
+                            2,
+                            ""
+                        );
+                    }
+                }
+                LLVMBuildCall(
+                    builder,
+                    PrintfFunction,
+                    PrintfArgsTupleEnd,
+                    1,
+                    ""
+                );
+            } else if (valuetype == VALUETYPE_TUPLE && exprnode->pnodetype == NODETYPE_EXPR_COMMA_EXPR){
+                // need to create a simulated temp tuple.
+                char temp_string[20];
+                get_temp_string(temp_string);
+                int width = get_expr_width(exprnode, global_tb, local_tbstk);
+                // allocate a temp global tuple
+                struct symboltableRecord* record_tuple= declare_symbol(temp_string, VALUETYPE_TUPLE, GLOBAL_SCOPE, exprnode->line, global_tb);
+                init_int_list_symbol(temp_string, GLOBAL_SCOPE, 0, width, exprnode->line, global_tb);
+                LLVMValueRef tuple_address =  LLVMBuildArrayAlloca(builder, LLVMInt32Type(), LLVMConstInt(LLVMInt32Type(), width, 0), temp_string);
+                record_tuple->value->address = tuple_address;
+                // populate tuple
+                LLVMValueRef results[width];
+                read_all_values_in_expr(exprnode, results, global_tb, local_tbstk, builder, module);
+                populate_into_address(results, width, tuple_address, builder);
+                // print 
+                LLVMValueRef format_int_0 = LLVMBuildGlobalStringPtr(
+                    builder,
+                    "%d,",
+                    "format_int_0"
+                );
+                LLVMValueRef format_int_1 = LLVMBuildGlobalStringPtr(
+                    builder,
+                    "%d",
+                    "format_int_1"
+                );
+                LLVMValueRef format_tuple_beg = LLVMBuildGlobalStringPtr(builder, "(", "format_tuple_beg");
+                LLVMValueRef format_tuple_end = LLVMBuildGlobalStringPtr(builder, ")\n", "format_tuple_end");
+                LLVMValueRef PrintfArgsTupleBeg[] = { format_tuple_beg };
+                LLVMValueRef PrintfArgsTupleEnd[] = { format_tuple_end };
+                LLVMValueRef PrintfFunction = LLVMGetNamedFunction(module, "printf");
+                LLVMBuildCall(
+                    builder,
+                    PrintfFunction,
+                    PrintfArgsTupleBeg,
+                    1,
+                    ""
+                );
+                for (int i = 0; i < width; i++){
+                    LLVMValueRef offset = LLVMConstInt(LLVMInt32Type(), i, 0); // array access should consider its start point
+                    LLVMValueRef indices[] = { offset };
+                    LLVMValueRef element_address = LLVMBuildGEP(builder, record_tuple->value->address, indices, 1, "");
+                    LLVMValueRef expr_code = LLVMBuildLoad(builder, element_address, "");
+                    if ( i < width-1){
+                        LLVMValueRef PrintfArgs[] = { format_int_0, expr_code };
+                        LLVMBuildCall(
+                            builder,
+                            PrintfFunction,
+                            PrintfArgs,
+                            2,
+                            ""
+                        );
+                    } else {
+                        LLVMValueRef PrintfArgs[] = { format_int_1, expr_code };
+                        LLVMBuildCall(
+                            builder,
+                            PrintfFunction,
+                            PrintfArgs,
+                            2,
+                            ""
+                        );
+                    }
+                }
+                LLVMBuildCall(
+                    builder,
+                    PrintfFunction,
+                    PrintfArgsTupleEnd,
+                    1,
+                    ""
+                );
+                // clean up temp global tuple
+                remove_symbol(temp_string, GLOBAL_SCOPE, exprnode->line, global_tb);
+            }
             break;
         }
         case NODETYPE_RETURN_STATEMENT: {                                               //1057
