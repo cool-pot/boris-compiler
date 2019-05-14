@@ -172,10 +172,8 @@ LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLV
             struct sNode* snode = (struct sNode*)node->childs[0];
             struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
             struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
-            if (record->valuetype == VALUETYPE_INT && record->value->isPara == 0) {
+            if (record->valuetype == VALUETYPE_INT) {
                 return LLVMBuildLoad(builder, record->value->address, "load_singleid_int_temp");
-            } else if (record->valuetype == VALUETYPE_INT && record->value->isPara == 1) {
-                return record->value->paraPassedValue;
             } else {
                 printf("codegen. not allowed id type\n");
                 exit(666);

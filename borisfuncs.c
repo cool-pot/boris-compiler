@@ -1634,8 +1634,8 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 if (record != NULL && record->value != NULL) {
                     int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE}; 
                     check_type_in_list(record->valuetype, truthlist, 3);
-                    struct symboltableRecord* local_record = declare_symbol(snode->sval, VALUETYPE_LINK_TO_GLOBAL, LOCAL_SCOPE, snode->line, top_symboltableStack(local_tbstk));
-                    
+                    struct symboltableRecord* local_record = declare_symbol(snode->sval, record->valuetype, LOCAL_SCOPE, snode->line, top_symboltableStack(local_tbstk));
+
                 } else {
                     fprintf(stderr, RED"[treewalker] error, can't access this global id in local env. in line %d"RESET, p->line);
                     exit(999);
@@ -1775,8 +1775,11 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 struct symboltableRecord* record = declare_symbol(para_name->sval, VALUETYPE_INT, LOCAL_SCOPE, para_name->line, local_tb);
                 init_int_symbol(para_name->sval, LOCAL_SCOPE, para_name->line, local_tb);
                 update_int_symbol(para_name->sval, LOCAL_SCOPE, 1, para_name->line, local_tb);
-                record->value->isPara = 1; // set it to be a parameter. will change the way it's refered.
-                record->value->paraPassedValue = LLVMGetParam(Function, 0);
+                LLVMValueRef local_address = LLVMBuildAlloca(func_builder, LLVMInt32Type(), para_name->sval);
+                LLVMBuildStore(func_builder, LLVMGetParam(Function, 0), local_address);
+                record->value->address = local_address;
+                //record->value->isPara = 1; // set it to be a parameter. will change the way it's refered.
+                //record->value->paraPassedValue = LLVMGetParam(Function, 0);
             } else {
                 printf("no implementation - defun\n");
                 exit(999);

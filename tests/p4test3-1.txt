@@ -3,5 +3,7 @@ defun double(x)
     return 2*x;
 end defun
 
+global z = 10;
 
+print double z;
 print double 3;
