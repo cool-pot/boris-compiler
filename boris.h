@@ -129,7 +129,6 @@ struct placeholderNode {
 #define VALUETYPE_INT 'I'
 #define VALUETYPE_FUNC 'F'
 #define VALUETYPE_UNKNOWN 'U'        //only for vairable just after declariation
-#define VALUETYPE_LINK_TO_GLOBAL 'L' //only for local scope vairable name to access the global symboltable
 #define INITTYPE 0
 
 struct symboltableRecordValue {
@@ -153,6 +152,7 @@ struct symboltableRecord {
     int valuetype;                            // VALUETYPE_XXXXXX
     struct symboltableRecordValue* value;     // if null, this record is not initilized
     int line;                                 // the line when this variable is declared
+    int isGlobalLink;                         // if it's a global link, then it's read-only.
 };
 
 struct symboltable {

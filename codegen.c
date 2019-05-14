@@ -274,7 +274,7 @@ void end_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
 void verify_llvm_module_and_output(LLVMModuleRef module){
     char *verify_error = NULL;
     char *print_error = NULL;
-    LLVMVerifyModule(module, LLVMAbortProcessAction, &verify_error);
+    //LLVMVerifyModule(module, LLVMAbortProcessAction, &verify_error);
     LLVMDisposeMessage(verify_error);
     LLVMWriteBitcodeToFile(module, "a.o");
     LLVMPrintModuleToFile(module, "a.ll", &print_error);

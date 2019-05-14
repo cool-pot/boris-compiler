@@ -1,0 +1,19 @@
+*** test level 3, array. local declare.
+defun arrayfunc(x)
+    local myarray;
+    array myarray[5..10];
+    local i = 5;
+    local j = 5;
+    local sum = 0;
+    while i <= 10 do 
+    	myarray[i] = 2*i;
+    	i = i+1;
+    end while
+    while j <= 10 do 
+    	sum = sum + myarray[j];
+    	j = j+1;
+    end while
+    return sum * x;
+end defun
+
+print arrayfunc 3;

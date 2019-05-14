@@ -39,6 +39,7 @@ struct symboltable* init_symboltable(int length, int scope){
         record->sval = NULL;
         record->value = NULL;
         record->valuetype = VALUETYPE_UNKNOWN;
+        record->isGlobalLink = 0;
         tb->records[i] = record;
     }
     tb->length = length;
@@ -84,16 +85,13 @@ int next_available_symbol_slot(struct symboltable* tb){
 }
 
 struct symboltableRecord* declare_symbol(char* sval, int valuetype, int scope, int line, struct symboltable* tb){
-    if (valuetype != VALUETYPE_FUNC && valuetype != VALUETYPE_ARRAY && valuetype != VALUETYPE_TUPLE && valuetype != VALUETYPE_INT && valuetype != VALUETYPE_UNKNOWN && valuetype != VALUETYPE_LINK_TO_GLOBAL){
+    if (valuetype != VALUETYPE_FUNC && valuetype != VALUETYPE_ARRAY && valuetype != VALUETYPE_TUPLE && valuetype != VALUETYPE_INT && valuetype != VALUETYPE_UNKNOWN){
         fprintf(stderr, RED"[symbol table error]internal error, bad value type"RESET);
         exit(994);
     }
-    if (scope != LOCAL_SCOPE && valuetype == VALUETYPE_LINK_TO_GLOBAL) {
-        fprintf(stderr, RED"[symbol table error]internal error, global link can only be declared in local scope"RESET);
-        exit(999);
-    }
     if (lookup_symbol(sval, scope, tb) != NULL) {
-        fprintf(stderr, RED"[symbol table error]duplicated declare for %s in this scope"RESET, sval);
+        fprintf(stderr, RED"[symbol table error]duplicated declare for %s in this scope, line %d\n"RESET, sval, line);
+        print_symboltable(tb);
         exit(999);
     } 
     if (tb == NULL) {
@@ -125,7 +123,6 @@ struct symboltableRecord* declare_symbol(char* sval, int valuetype, int scope, i
         else if (valuetype == VALUETYPE_TUPLE) { strcpy(symboltype, "tuple"); } 
         else if (valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
         else if (valuetype == VALUETYPE_UNKNOWN) { strcpy(symboltype, "unknown"); }
-        else if (valuetype == VALUETYPE_LINK_TO_GLOBAL) { strcpy(symboltype, "link_to_global"); }
         if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
         else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
         fprintf(stderr, GREEN"[symbol table decl symbol]declare %s %s symbol `%s` in line %d.\n"RESET, symbolscope, symboltype, sval, line);
@@ -313,7 +310,6 @@ void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
         record->valid = 0;
         if (record->value != NULL) { 
             switch (record->valuetype) {
-                case VALUETYPE_LINK_TO_GLOBAL: //should not happend actually
                 case VALUETYPE_INT:{
                     free(record->value);
                     break;
@@ -343,7 +339,6 @@ void remove_symbol(char* sval, int scope, int line, struct symboltable* tb){
             else if (valuetype == VALUETYPE_TUPLE) { strcpy(symboltype, "tuple"); } 
             else if (valuetype == VALUETYPE_ARRAY) { strcpy(symboltype, "array"); }
             else if (valuetype == VALUETYPE_UNKNOWN) { strcpy(symboltype, "unknown"); }
-            else if (valuetype == VALUETYPE_LINK_TO_GLOBAL) { strcpy(symboltype, "link_to_global"); }
             if (scope == GLOBAL_SCOPE) { strcpy(symbolscope, "global"); } 
             else if (scope == LOCAL_SCOPE) { strcpy(symbolscope, "local"); }
             fprintf(stderr, GREEN"[symbol table remove symbol]remove %s %s symbol `%s` in line %d.\n"RESET, symbolscope, symboltype, sval, line);
@@ -433,15 +428,6 @@ void print_symboltableRecord(struct symboltableRecord* record){
                     exit(975);
                 }else {
                      printf("value:uninitialized");
-                }
-                break;
-            }
-            case VALUETYPE_LINK_TO_GLOBAL:{
-                if (record->value != NULL) { 
-                    printf(RED"[symbol table error]`%s`, internal error, link_to_global valuetype has not null value %c"RESET, record->sval, record->valuetype);
-                    exit(975);
-                }else {
-                     printf("value:link_to_global");
                 }
                 break;
             }
@@ -612,8 +598,6 @@ void symbolTableTester(){
     print_symboltableStack(tbstk);
 
     pop_symboltableStack(tbstk);
-    declare_symbol("arg3", VALUETYPE_LINK_TO_GLOBAL, LOCAL_SCOPE, 6, top_symboltableStack(tbstk));
-    print_symboltable(top_symboltableStack(tbstk));
 
     remove_symboltable(tb);
     remove_symboltableStack(tbstk);
