@@ -94,10 +94,8 @@
 %% 
 
 %left OP_COMMA;
-%left OP_MINUS;
-%left OP_PLUS;
-%left OP_DIV;
-%left OP_MULT;
+%left OP_MINUS OP_PLUS;
+%left OP_DIV OP_MULT;
 
 %nonassoc EXPR_LPAR_RPAR_INCLUSICE;
 %nonassoc EXPR_NORMAL_ID;

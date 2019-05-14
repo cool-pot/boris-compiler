@@ -1,0 +1,5 @@
+*** test level 2, array with expr assign
+global myarray;
+global offset = 2;
+array myarray[5..10] x = x*x-1+offset;
+print myarray;

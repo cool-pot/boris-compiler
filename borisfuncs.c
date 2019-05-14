@@ -1257,7 +1257,7 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             break;
         }
         case NODETYPE_FOREACH_RANGE_STATEMENT: {                                        //1053
-            // the temp iterator id is treated as a temprary global id, will remove it after this statement
+            // the temp iterator id is treated as a temprary id, will remove it after this statement
             struct sNode* snode = (struct sNode*) p->childs[1]->childs[0];
             struct pNode* rangenode = p->childs[3];
             struct pNode* endfornode = p->childs[7];
@@ -1306,11 +1306,11 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             LLVMBuildBr(builder, CheckBasicBlock);
             LLVMPositionBuilderAtEnd(builder, EndBasicBlock);
              // remove the item
-            remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
+            remove_symbol(snode->sval, SCOPE, endfornode->line, tb);
             break;
         }
         case NODETYPE_FOREACH_ARRAYID_STATEMENT: {                                      //1055
-            // the temp iterator id is treated as a temprary global id, will remove it after this statement
+            // the temp iterator id is treated as a temprary id, will remove it after this statement
             char temp_string[20];
             get_temp_string(temp_string);
             struct sNode* snode = (struct sNode*) p->childs[1]->childs[0];
@@ -1736,7 +1736,6 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             }
             break;
         }
-        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC:                                       //1062
         case NODETYPE_ARRAY_DECL: {                                                     //1061
             //KW_ARRAY ID OP_LBRAK expr OP_DOTDOT expr OP_RBRAK OP_SEMI 
             struct sNode * snode = (struct sNode *)(p->childs[1]); 
@@ -1758,6 +1757,50 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             LLVMValueRef array_address =  LLVMBuildArrayAlloca(builder, LLVMInt32Type(), LLVMConstInt(LLVMInt32Type(), end-beg+1, 0), snode->sval);
             struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
             record->value->address = array_address;
+            break;
+        }
+        case NODETYPE_ARRAY_DECL_WITH_ANONY_FUNC: {                                     //1062
+            //KW_ARRAY ID OP_LBRAK expr OP_DOTDOT expr OP_RBRAK OP_SEMI 
+            struct sNode * snode = (struct sNode *)(p->childs[1]); 
+            struct pNode * exprnode_beg = p->childs[3];
+            struct pNode * exprnode_end = p->childs[5];
+            struct sNode * itemnode = (struct sNode *)(p->childs[7]);
+            struct pNode * exprnode = p->childs[9]; 
+            check_type_equal(type_lookup(snode->sval, global_tb, local_tbstk), VALUETYPE_UNKNOWN);
+            check_type_equal(type_synthesis(exprnode_beg, global_tb, local_tbstk), VALUETYPE_INT);
+            check_type_equal(type_synthesis(exprnode_end, global_tb, local_tbstk), VALUETYPE_INT);
+            struct symboltable* matched_tb = get_matched_symboltable(snode->sval, global_tb, local_tbstk);
+            set_symbol_type(snode->sval, VALUETYPE_ARRAY, matched_tb->scope, snode->line, matched_tb);
+            // restrict the expr to be a SINGLE_INT_AS_EXPR in the following
+            if (exprnode_beg->pnodetype != NODETYPE_SINGLE_INT_AS_EXPR || exprnode_end->pnodetype != NODETYPE_SINGLE_INT_AS_EXPR) {
+                printf("array decl, only allow integers now, no implementation\n");
+                exit(666);
+            }
+            int beg = ((struct iNode *)exprnode_beg->childs[0])->ival;
+            int end = ((struct iNode *)exprnode_end->childs[0])->ival;
+            init_int_list_symbol(snode->sval, matched_tb->scope, beg, end-beg+1, snode->line, matched_tb);
+            LLVMValueRef array_address =  LLVMBuildArrayAlloca(builder, LLVMInt32Type(), LLVMConstInt(LLVMInt32Type(), end-beg+1, 0), snode->sval);
+            struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
+            record->value->address = array_address;
+            // anony_func assign
+            int SCOPE = LOCAL_ENV? LOCAL_SCOPE : GLOBAL_SCOPE;
+            struct symboltable* tb = LOCAL_ENV? top_symboltableStack(local_tbstk) : global_tb;
+            struct symboltableRecord* record_item = declare_symbol(itemnode->sval, VALUETYPE_INT, SCOPE, itemnode->line, tb);            
+            init_int_symbol(itemnode->sval, SCOPE, itemnode->line, tb);
+            update_int_symbol(itemnode->sval, SCOPE, 1, itemnode->line, tb);
+            //init item
+            LLVMValueRef item_address = LLVMBuildAlloca(builder, LLVMInt32Type(), itemnode->sval);
+            record_item->value->address = item_address;
+            for (int i = beg; i <= end; i++ ){
+                LLVMBuildStore(builder, LLVMConstInt(LLVMInt32Type(), i, 0), record_item->value->address);
+                LLVMValueRef expr_code = boris_codegen_expr(exprnode, builder, module, global_tb, local_tbstk);
+                LLVMValueRef offset = LLVMConstInt(LLVMInt32Type(), i-beg, 0);
+                LLVMValueRef indices[] = { offset };
+                LLVMValueRef element_address = LLVMBuildGEP(builder, array_address, indices, 1, "");
+                LLVMBuildStore(builder, expr_code, element_address);
+            }
+             // remove the item
+            remove_symbol(itemnode->sval, SCOPE, itemnode->line, tb);
             break;
         }
         
