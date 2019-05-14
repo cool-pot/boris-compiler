@@ -1,0 +1,9 @@
+*** test level 3,  local foreach range
+defun arrayfunc(x)
+    foreach k in 5..20 do
+        print k*k;
+    end for
+    return 0;
+end defun
+
+print arrayfunc 0;
