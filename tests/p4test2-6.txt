@@ -1,0 +1,37 @@
+*** test level 2, exchange
+
+***int
+global fooi = 1;
+global bari = 2;
+
+print fooi;
+print bari;
+fooi <-> bari;
+print fooi;
+print bari;
+
+***tuple
+global foot = 1,2,3;
+global bart = 2,3,4,5;
+print foot;
+print bart;
+foot <-> bart;
+print foot;
+print bart;
+
+***array
+global fooa;
+global bara;
+array fooa[1..2];
+array bara[6..8];
+fooa[1] = 1;
+fooa[2] = 2;
+bara[6] = 6;
+bara[7] = 7;
+bara[8] = 8;
+print fooa;
+print bara;
+fooa <-> bara;
+print fooa;
+print bara;
+

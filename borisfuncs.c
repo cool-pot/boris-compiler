@@ -661,8 +661,8 @@ int type_inference(struct pNode* p, struct symboltable* global_tb, struct symbol
             // only int, tuple, unknown are allowed as a single id in lhs. 
             struct sNode * snode = (struct sNode *)(p->childs[0]);
             int valuetype = type_lookup(snode->sval, global_tb, local_tbstk);
-            int truthlist[] = {VALUETYPE_TUPLE, VALUETYPE_INT, VALUETYPE_UNKNOWN};
-            check_type_in_list(valuetype, truthlist, 3); 
+            int truthlist[] = {VALUETYPE_TUPLE, VALUETYPE_INT, VALUETYPE_UNKNOWN, VALUETYPE_ARRAY};
+            check_type_in_list(valuetype, truthlist, 4); 
             return valuetype;
             break;
         }
@@ -1195,6 +1195,40 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             if(get_node_depth(left_lhsnode) != 1){
                 fprintf(stderr, RED"[treewalker] exchange failed. only support length 1 %d"RESET, p->line);
                 exit(999);
+            }
+            struct pNode* left_lhsitem = left_lhsnode->childs[0];
+            struct pNode* right_lhsitem = right_lhsnode->childs[0];
+            if(left_lhsitem->pnodetype != NODETYPE_SINGLE_ID_AS_LHSITEM || right_lhsitem->pnodetype != NODETYPE_SINGLE_ID_AS_LHSITEM){
+                fprintf(stderr, RED"[treewalker] exchange failed. only support single id %d"RESET, p->line);
+                exit(999);
+            }
+            struct sNode* left_snode = (struct sNode*)left_lhsitem->childs[0];
+            struct sNode* right_snode = (struct sNode*)right_lhsitem->childs[0];
+            struct symboltable* left_matched_tb = get_matched_symboltable(left_snode->sval, global_tb, local_tbstk);
+            struct symboltableRecord* left_record = lookup_symbol(left_snode->sval, left_matched_tb->scope, left_matched_tb);
+            struct symboltable* right_matched_tb = get_matched_symboltable(right_snode->sval, global_tb, local_tbstk);
+            struct symboltableRecord* right_record = lookup_symbol(right_snode->sval, right_matched_tb->scope, right_matched_tb);
+            if(left_record->valuetype == VALUETYPE_INT) {
+                LLVMValueRef temp = left_record->value->address;
+                left_record->value->address = right_record->value->address;
+                right_record->value->address = temp;
+            } else if (left_record->valuetype == VALUETYPE_TUPLE) {
+                LLVMValueRef temp = left_record->value->address;
+                left_record->value->address = right_record->value->address;
+                right_record->value->address = temp;
+                int templength = left_record->value->ivallistlength;
+                left_record->value->ivallistlength = right_record->value->ivallistlength;
+                right_record->value->ivallistlength = templength;
+            } else if (left_record->valuetype == VALUETYPE_ARRAY) {
+                LLVMValueRef temp = left_record->value->address;
+                left_record->value->address = right_record->value->address;
+                right_record->value->address = temp;
+                int templength = left_record->value->ivallistlength;
+                left_record->value->ivallistlength = right_record->value->ivallistlength;
+                right_record->value->ivallistlength = templength;
+                int tempstart = left_record->value->ivallist_start;
+                left_record->value->ivallist_start = right_record->value->ivallist_start;
+                right_record->value->ivallist_start = tempstart;
             }
             break;
         }
