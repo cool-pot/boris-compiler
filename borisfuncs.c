@@ -957,6 +957,11 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         case NODETYPE_SDD_LIST:                                                        //1072
         //leaf - keyword place holder
         case NODETYPE_PLACEHOLDER:                                                     //1026
+        //#function calls
+        case NODETYPE_STATEMENT_AS_SD:                                                 //1063
+        case NODETYPE_DECL_AS_SD:                                                      //1064
+        case NODETYPE_SD_LIST:                                                         //1065
+        case NODETYPE_BODY:                                                            //1066
         {
             for (int i = 0; i < p->childscount; i++)
                 treewalker(p->childs[i], global_tb, local_tbstk, builder, module);
@@ -1578,6 +1583,12 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 int valuetype = type_synthesis(exprnode, global_tb, local_tbstk);
                 int truthlist[] = {VALUETYPE_INT, VALUETYPE_TUPLE};
                 check_type_in_list(valuetype, truthlist, 2);
+                if (valuetype == VALUETYPE_INT){
+                    LLVMBuildRet(builder, boris_codegen_expr(exprnode, builder, module, global_tb, local_tbstk));
+                } else {
+                    printf("no implementation - return\n");
+                    exit(999);
+                }
                 pop_symboltableStack(local_tbstk);
             } else {
                 fprintf(stderr,RED"can't use return statementout side local enviroment.\n"RESET);
@@ -1620,12 +1631,13 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 declare_symbol(snode->sval, VALUETYPE_UNKNOWN, GLOBAL_SCOPE, snode->line, global_tb);
             } else if (check_current_scope(global_tb, local_tbstk, LOCAL_SCOPE)){
                 struct symboltableRecord* record = lookup_symbol(snode->sval, GLOBAL_SCOPE, global_tb);
-                if (record != NULL) {
+                if (record != NULL && record->value != NULL) {
                     int truthlist[] = {VALUETYPE_ARRAY, VALUETYPE_INT, VALUETYPE_TUPLE}; 
                     check_type_in_list(record->valuetype, truthlist, 3);
-                    declare_symbol(snode->sval, VALUETYPE_LINK_TO_GLOBAL, LOCAL_SCOPE, snode->line, top_symboltableStack(local_tbstk));
+                    struct symboltableRecord* local_record = declare_symbol(snode->sval, VALUETYPE_LINK_TO_GLOBAL, LOCAL_SCOPE, snode->line, top_symboltableStack(local_tbstk));
+                    
                 } else {
-                    fprintf(stderr, RED"[treewalker] can't access unknown global id in local env. in line %d"RESET, p->line);
+                    fprintf(stderr, RED"[treewalker] error, can't access this global id in local env. in line %d"RESET, p->line);
                     exit(999);
                 }
             }
@@ -1725,14 +1737,52 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
                 exit(999);
             }
             struct sNode * func_name = (struct sNode *)(p->childs[1]); 
-            printf("-------determine defn `%s` input and return type------\n", func_name->sval);
+            struct sNode * para_name = (struct sNode *)(p->childs[3]); 
+            struct pNode * body = p->childs[6];
+            //printf("-------determine defn `%s` input and return type------\n", func_name->sval);
             int formal_parameter_valuetype = determine_formal_parameter_valuetype(p);
             int return_valuetype = determine_return_valuetype(p, formal_parameter_valuetype, global_tb);
-            printf("for function `%s`, input is `%c`, return type is `%c`\n",func_name->sval, formal_parameter_valuetype, return_valuetype);
-            printf("-------determine finish--------------------------\n");
+            //printf("for function `%s`, input is `%c`, return type is `%c`\n",func_name->sval, formal_parameter_valuetype, return_valuetype);
+            //printf("-------determine finish--------------------------\n");
             declare_symbol(func_name->sval, VALUETYPE_FUNC, GLOBAL_SCOPE, func_name->line, global_tb);
             init_func_symbol(func_name->sval, GLOBAL_SCOPE, formal_parameter_valuetype, return_valuetype, p, func_name->line, global_tb);
-            
+            //build functions here
+            LLVMTypeRef ArgsTyList[1];
+            LLVMTypeRef RetTy;
+            if (formal_parameter_valuetype == VALUETYPE_INT) {
+                ArgsTyList[0] = LLVMInt32Type();
+            } else {
+                ArgsTyList[0] =  LLVMPointerType(LLVMInt32Type(), 0);
+            } 
+            if (return_valuetype == VALUETYPE_INT) {
+                RetTy = LLVMInt32Type();
+            } else {
+                RetTy =  LLVMPointerType(LLVMInt32Type(), 0);
+            }
+            LLVMTypeRef FuncTy = LLVMFunctionType(
+                RetTy,
+                ArgsTyList,
+                1,
+                0
+            );
+            LLVMValueRef Function = LLVMAddFunction(module, func_name->sval, FuncTy);
+            LLVMBasicBlockRef InitBasicBlock = LLVMAppendBasicBlock(Function, "Entry");
+            LLVMBuilderRef func_builder = LLVMCreateBuilder();
+            LLVMPositionBuilderAtEnd(func_builder, InitBasicBlock);
+            struct symboltable* local_tb = init_symboltable(MAX_SYMBOLTABLE_SIZE, LOCAL_SCOPE);
+            push_symboltableStack(local_tb, local_tbstk);
+            if (formal_parameter_valuetype == VALUETYPE_INT) {
+                struct symboltableRecord* record = declare_symbol(para_name->sval, VALUETYPE_INT, LOCAL_SCOPE, para_name->line, local_tb);
+                init_int_symbol(para_name->sval, LOCAL_SCOPE, para_name->line, local_tb);
+                update_int_symbol(para_name->sval, LOCAL_SCOPE, 1, para_name->line, local_tb);
+                record->value->isPara = 1; // set it to be a parameter. will change the way it's refered.
+                record->value->paraPassedValue = LLVMGetParam(Function, 0);
+            } else {
+                printf("no implementation - defun\n");
+                exit(999);
+            }
+            treewalker(body, global_tb, local_tbstk, func_builder, module);
+            LLVMDisposeBuilder(func_builder);
             break;
         }
         // leaf
@@ -1760,11 +1810,6 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
         case NODETYPE_RANGE:                                                         //1043
         case NODETYPE_ARRAY_ID:                                                      //1054
         case NODETYPE_ITER_ID:                                                       //1076
-        //#function calls
-        case NODETYPE_STATEMENT_AS_SD:                                               //1063
-        case NODETYPE_DECL_AS_SD:                                                    //1064
-        case NODETYPE_SD_LIST:                                                       //1065
-        case NODETYPE_BODY:                                                          //1066
         case NODETYPE_COMMA_ID_LIST:                                                 //1067
         {
             printf("should not visit this node directly in treewalker: %d\n", p->pnodetype);

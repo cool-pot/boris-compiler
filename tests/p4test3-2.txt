@@ -1,0 +1,8 @@
+*** test level 3, function: int->int
+global y = 10;
+defun myadd(x)
+    global y;
+    return x+y;
+end defun
+
+print myadd 3;

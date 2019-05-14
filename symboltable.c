@@ -155,6 +155,8 @@ void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb){
         exit(0);
     }
     value->ival = 0; // default value 0
+    value->isPara = 0;
+    value->paraPassedValue = NULL;
     value->address = NULL;
     r->value = value;
     // verbose print

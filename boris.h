@@ -138,6 +138,8 @@ struct symboltableRecordValue {
   int ivallist[MAX_TUPLE_ARRAY_SIZE];        // reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
   int ivallist_start;                        // the start index, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
   int ivallistlength;                        // the total length, reserved for VALUETYPE_TUPLE,  VALUETYPE_ARRAY
+  int isPara;                                // if it's a parameter, the value is passed by outside. won't have a local address
+  LLVMValueRef paraPassedValue;              // the passed value
 };
 
 struct symboltableRecordFunction {
