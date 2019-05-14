@@ -1,0 +1,16 @@
+*** test level 3,  local foreach array
+defun arrayfunc(x)
+    local myarray;
+    array myarray[5..10];
+    local i = 5;
+    while i <= 10 do 
+        myarray[i] = 2*i;
+        i = i+1;
+    end while
+    foreach k in myarray do
+        print k;
+    end for
+    return 0;
+end defun
+
+print arrayfunc 0;

@@ -134,15 +134,15 @@ struct symboltableRecord* declare_symbol(char* sval, int valuetype, int scope, i
 void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb){
     struct symboltableRecord* r = lookup_symbol(sval, scope, tb);
     if (r == NULL) {
-        fprintf(stderr, RED"[symbol table error]update a undeclared symbol %s in this scope is not valid"RESET, sval);
+        fprintf(stderr, RED"[symbol table error]update a undeclared symbol %s in this scope `%c` is not valid\n"RESET, sval, scope);
         exit(993);
     }
     if (r->valuetype != VALUETYPE_INT) {
-        fprintf(stderr, RED"[symbol table error]wrong type, can't init a int value to non-int symbol %s in this scope"RESET, sval);
+        fprintf(stderr, RED"[symbol table error]wrong type, can't init a int value to non-int symbol %s in this scope\n"RESET, sval);
         exit(992);
     }
     if (r->value != NULL) {
-        fprintf(stderr, RED"[symbol table error]init a non-empty symbol `%s` in this scope"RESET, sval);
+        fprintf(stderr, RED"[symbol table error]init a non-empty symbol `%s` in this scope\n"RESET, sval);
         exit(992);
     }
     // init the symbol value here

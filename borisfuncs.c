@@ -1262,7 +1262,9 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             struct pNode* rangenode = p->childs[3];
             struct pNode* endfornode = p->childs[7];
             struct pNode* stmtsnode = p->childs[5];
-            struct symboltableRecord* record_item = declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb);
+            int SCOPE = LOCAL_ENV? LOCAL_SCOPE : GLOBAL_SCOPE;
+            struct symboltable* tb = LOCAL_ENV? top_symboltableStack(local_tbstk) : global_tb;
+            struct symboltableRecord* record_item = declare_symbol(snode->sval, VALUETYPE_INT, SCOPE, snode->line, tb);
             check_type_equal(type_synthesis(rangenode->childs[0], global_tb, local_tbstk), VALUETYPE_INT);
             check_type_equal(type_synthesis(rangenode->childs[2], global_tb, local_tbstk), VALUETYPE_INT);
             // implemented like a while loop
@@ -1275,7 +1277,8 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             LLVMBuildBr(builder, InitBasicBlock);
             LLVMPositionBuilderAtEnd(builder, InitBasicBlock);
             // assign beg_value to temp
-            init_int_symbol(snode->sval, GLOBAL_SCOPE, snode->line, global_tb);
+            init_int_symbol(snode->sval, SCOPE, snode->line, tb);
+            update_int_symbol(snode->sval, SCOPE, 1, snode->line, tb);
             LLVMValueRef item_address = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
             record_item->value->address = item_address;
             LLVMValueRef beg_value = boris_codegen_expr(rangenode->childs[0], builder, module, global_tb, local_tbstk);
@@ -1314,8 +1317,10 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             struct pNode* arrayidnode = p->childs[3];
             struct sNode* arraynamenode = (struct sNode*) arrayidnode->childs[0];
             struct pNode* endfornode = p->childs[7];
-            struct symboltableRecord* record_item = declare_symbol(snode->sval, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb); //iter_item
-            struct symboltableRecord* record_item_index = declare_symbol(temp_string, VALUETYPE_INT, GLOBAL_SCOPE, snode->line, global_tb); //iter_item_index
+            int SCOPE = LOCAL_ENV? LOCAL_SCOPE : GLOBAL_SCOPE;
+            struct symboltable* tb = LOCAL_ENV? top_symboltableStack(local_tbstk) : global_tb;
+            struct symboltableRecord* record_item = declare_symbol(snode->sval, VALUETYPE_INT, SCOPE, snode->line, tb); //iter_item
+            struct symboltableRecord* record_item_index = declare_symbol(temp_string, VALUETYPE_INT, SCOPE, snode->line, tb); //iter_item_index
             struct symboltable* matched_tb = get_matched_symboltable(arraynamenode->sval, global_tb, local_tbstk);
             struct symboltableRecord* record_array = lookup_symbol(arraynamenode->sval, matched_tb->scope, matched_tb);
             check_type_equal(type_lookup(arraynamenode->sval, global_tb, local_tbstk), VALUETYPE_ARRAY);
@@ -1341,10 +1346,10 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             LLVMValueRef item_address = LLVMBuildAlloca(builder, LLVMInt32Type(), snode->sval);
             LLVMValueRef array_address = record_array->value->address;
             LLVMBuildStore(builder, Zero32, item_index_address);
-            init_int_symbol(snode->sval, GLOBAL_SCOPE, snode->line, global_tb);
-            update_int_symbol(snode->sval, GLOBAL_SCOPE, 1, snode->line, global_tb);
-            init_int_symbol(temp_string, GLOBAL_SCOPE, snode->line, global_tb);
-            update_int_symbol(temp_string, GLOBAL_SCOPE, 1, snode->line, global_tb);
+            init_int_symbol(snode->sval, SCOPE, snode->line, tb);
+            update_int_symbol(snode->sval, SCOPE, 1, snode->line, tb);
+            init_int_symbol(temp_string, SCOPE, snode->line, tb);
+            update_int_symbol(temp_string, SCOPE, 1, snode->line, tb);
             record_item_index->value->address = item_index_address;
             record_item->value->address = item_address;
             //load array[0] to item
@@ -1372,8 +1377,8 @@ void treewalker(struct pNode* p, struct symboltable* global_tb, struct symboltab
             // put builder at end
             LLVMPositionBuilderAtEnd(builder, EndBasicBlock);
             // remove the item, item_index, and clean up simluated node
-            remove_symbol(snode->sval, GLOBAL_SCOPE, endfornode->line, global_tb);
-            remove_symbol(temp_string, GLOBAL_SCOPE, endfornode->line, global_tb);
+            remove_symbol(snode->sval, SCOPE, endfornode->line, tb);
+            remove_symbol(temp_string, SCOPE, endfornode->line, tb);
             free(simulated_index);
             free(simulated_boolop);
             free(simulated_length);

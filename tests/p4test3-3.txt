@@ -1,4 +1,4 @@
-*** test level 3, array. local declare.
+*** test level 3, array local declare. local control flow
 defun arrayfunc(x)
     local myarray;
     array myarray[5..10];
