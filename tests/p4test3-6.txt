@@ -1,0 +1,8 @@
+*** test level 3, function: tuple->int
+global t = 1,2,3;
+defun sum(x)
+    return x.0 + x.1 +x.2;
+end defun
+
+print sum t;
+print sum (3,4,5,6,7);***only sum first three

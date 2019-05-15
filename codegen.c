@@ -174,10 +174,22 @@ LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLV
             struct symboltableRecord* record = lookup_symbol(snode->sval, matched_tb->scope, matched_tb);
             if (record->valuetype == VALUETYPE_INT) {
                 return LLVMBuildLoad(builder, record->value->address, "load_singleid_int_temp");
-            } else {
+            } else if (record->valuetype == VALUETYPE_TUPLE) {
+                return record->value->address; // tuple type return its address 
+            }else {
                 printf("codegen. not allowed id type\n");
                 exit(666);
             }
+        }
+        case NODETYPE_EXPR_COMMA_EXPR:{
+            int width = get_expr_width(node, global_tb, local_tbstk);
+            // allocate tuple
+            LLVMValueRef tuple_address =  LLVMBuildArrayAlloca(builder, LLVMInt32Type(), LLVMConstInt(LLVMInt32Type(), width, 0), "");
+            // populate tuple
+            LLVMValueRef results[width];
+            read_all_values_in_expr(node, results, global_tb, local_tbstk, builder, module);
+            populate_into_address(results, width, tuple_address, builder);
+            return tuple_address;
         }
         case NODETYPE_ARRAY_REF_AS_EXPR:{
             struct sNode* snode = (struct sNode*)node->childs[0];
@@ -217,7 +229,18 @@ LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLV
                     ""
                 );
                 return ret;
-            } else {
+            } else if (func_value->formal_parameter_valuetype == VALUETYPE_TUPLE && func_value->return_valuetype == VALUETYPE_INT){
+                LLVMValueRef Function = LLVMGetNamedFunction(module, func_name->sval);
+                LLVMValueRef FunctionArgs[] = { boris_codegen_expr(exprnode, builder, module, global_tb, local_tbstk) };
+                LLVMValueRef ret = LLVMBuildCall(
+                    builder,
+                    Function,
+                    FunctionArgs,
+                    1,
+                    ""
+                );
+                return ret;
+            }else {
                 printf("no implementation - func call\n" );
             }  
         }
@@ -274,7 +297,7 @@ void end_boris_module(LLVMBuilderRef builder,LLVMModuleRef module){
 void verify_llvm_module_and_output(LLVMModuleRef module){
     char *verify_error = NULL;
     char *print_error = NULL;
-    //LLVMVerifyModule(module, LLVMAbortProcessAction, &verify_error);
+    LLVMVerifyModule(module, LLVMAbortProcessAction, &verify_error);
     LLVMDisposeMessage(verify_error);
     LLVMWriteBitcodeToFile(module, "a.o");
     LLVMPrintModuleToFile(module, "a.ll", &print_error);
