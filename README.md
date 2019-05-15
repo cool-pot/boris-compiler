@@ -9,12 +9,22 @@ The following parts will be necessary:
 - [x] scanner 
 - [x] parser
 - [x] symbol table handler and type checker
-- [ ] code generator
+- [x] code generator
 
 Dependency: 
 
 - clang-6.0.0
 - llvm-6.0.0
+
+Some Known Issues:
+
+- no global link in local environment
+- `function defun` only support one parameter, can be int or tuple
+- return type must be int, no tuple
+- `exchange` only support length 1 id on both side
+- `assgin` only suppory length 1 id on left hand side
+- no return statement in control flow
+- no recursion support
 
 ## scanner
 

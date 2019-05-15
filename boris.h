@@ -143,6 +143,8 @@ struct symboltableRecordFunction {
   struct pNode* defnnode;
   int formal_parameter_valuetype;
   int return_valuetype;
+  int formal_parameter_length; 
+  int return_length;
 };
 
 struct symboltableRecord {
@@ -205,12 +207,15 @@ void init_int_symbol(char* sval, int scope, int line, struct symboltable* tb);
 void update_int_symbol(char* sval, int scope, int ival, int line, struct symboltable* tb);
 void init_int_list_symbol(char* sval, int scope, int ivallist_start, int ivallistlength, int line, struct symboltable* tb);
 void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int updateindex, int line, struct symboltable* tb);
-void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int return_valuetype, struct pNode* defnnode, int line, struct symboltable* tb);
+void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int return_valuetype, int formal_parameter_length, int return_length,  struct pNode* defnnode, int line, struct symboltable* tb);
 void remove_symbol(char* sval, int scope, int line, struct symboltable* tb);
 void print_symboltableRecord(struct symboltableRecord* record);
 
 /*borisfuncs*/
 struct symboltable* get_matched_symboltable(char* sval, struct symboltable* global_tb, struct symboltableStack* local_tbstk);
+int get_expr_width(struct pNode* p, struct symboltable* global_tb, struct symboltableStack* local_tbstk);
+void read_all_values_in_expr(struct pNode* exprnode, LLVMValueRef* results, struct symboltable* global_tb, struct symboltableStack* local_tbstk, LLVMBuilderRef builder, LLVMModuleRef module);
+void populate_into_address(LLVMValueRef results[], int width, LLVMValueRef address, LLVMBuilderRef builder);
 
 /*code generator*/
 LLVMValueRef boris_codegen_expr(struct pNode *node,  LLVMBuilderRef builder, LLVMModuleRef module, struct symboltable* global_tb, struct symboltableStack* local_tbstk);

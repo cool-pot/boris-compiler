@@ -267,7 +267,7 @@ void update_int_list_symbol_itemwise(char* sval, int scope, int updateval, int u
     return;
 }
 
-void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int return_valuetype, struct pNode* defnnode, int line, struct symboltable* tb){
+void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int return_valuetype, int formal_parameter_length, int return_length,  struct pNode* defnnode, int line, struct symboltable* tb){
     struct symboltableRecord* r = lookup_symbol(sval, scope, tb);
     if (r == NULL) {
         fprintf(stderr, RED"[symbol table error]update a undeclared symbol %s in this scope is not valid"RESET, sval);
@@ -286,6 +286,8 @@ void init_func_symbol(char* sval, int scope, int formal_parameter_valuetype, int
     function->defnnode = defnnode;
     function->formal_parameter_valuetype = formal_parameter_valuetype;
     function->return_valuetype = return_valuetype;
+    function->formal_parameter_length = formal_parameter_length;
+    function->return_length = return_length;
     r->value = (struct symboltableRecordValue*)function;
     // verbose print
     if (SYMBOLTABLE_VERBOSE) {
