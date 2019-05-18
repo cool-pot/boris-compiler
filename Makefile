@@ -6,6 +6,7 @@ LLVMLDFLAGS =`llvm-config --cxxflags --ldflags --libs core executionengine mcjit
 
 clean:
 	rm -rf lex.yy.c boris_scanner boris_parser boris parser scanner\
+		compiler \
 		boris.lex.c boris.tab.c boris.tab.h \
 		boris.output \
 		symboltable_test \

@@ -1,0 +1,58 @@
+; ModuleID = 'module-boris-input'
+source_filename = "module-boris-input"
+target triple = "x86_64-pc-linux-gnu"
+
+@format_int = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+@format_int.1 = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+@format_int.2 = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+
+define i32 @strlen(i8* %s) {
+init:
+  %i = alloca i32
+  store i32 0, i32* %i
+  br label %check
+
+check:                                            ; preds = %body, %init
+  %0 = load i32, i32* %i
+  %1 = getelementptr i8, i8* %s, i32 %0
+  %2 = load i8, i8* %1
+  %3 = icmp ne i8 0, %2
+  br i1 %3, label %body, label %end
+
+body:                                             ; preds = %check
+  %4 = load i32, i32* %i
+  %5 = add i32 %4, 1
+  store i32 %5, i32* %i
+  br label %check
+
+end:                                              ; preds = %check
+  %6 = load i32, i32* %i
+  ret i32 %6
+}
+
+declare i32 @printf(...)
+
+define void @main() {
+MainEntry:
+  %x = alloca i32
+  store i32 1, i32* %x
+  store i32 1, i32* %x
+  %load_singleid_int_temp = load i32, i32* %x
+  %expr_plus_expr_tmp = add i32 %load_singleid_int_temp, 1
+  store i32 %expr_plus_expr_tmp, i32* %x
+  %load_singleid_int_temp1 = load i32, i32* %x
+  %0 = call i32 (...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @format_int, i32 0, i32 0), i32 %load_singleid_int_temp1)
+  %y = alloca i32
+  store i32 9, i32* %y
+  %load_singleid_int_temp2 = load i32, i32* %y
+  %1 = call i32 (...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @format_int.1, i32 0, i32 0), i32 %load_singleid_int_temp2)
+  %load_singleid_int_temp3 = load i32, i32* %x
+  %load_singleid_int_temp4 = load i32, i32* %y
+  %expr_mul_expr_tmp = mul i32 %load_singleid_int_temp3, %load_singleid_int_temp4
+  %expr_plus_expr_tmp5 = add i32 2, %expr_mul_expr_tmp
+  %2 = call i32 (...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @format_int.2, i32 0, i32 0), i32 %expr_plus_expr_tmp5)
+  br label %EndEntry
+
+EndEntry:                                         ; preds = %MainEntry
+  ret void
+}
