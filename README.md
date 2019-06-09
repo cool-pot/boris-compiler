@@ -4,12 +4,14 @@
 
 The project involves building several stages of a complete compiler for a made-up language made by Prof **Boris Aronov**. 
 
-The following parts will be necessary:
+The following parts have been implemented:
 
 - [x] scanner 
 - [x] parser
 - [x] symbol table handler and type checker
 - [x] code generator
+
+The keywords and grammar is described in [GRAMMAR.txt](./GRAMMAR.txt)
 
 ## Build the compiler
 
